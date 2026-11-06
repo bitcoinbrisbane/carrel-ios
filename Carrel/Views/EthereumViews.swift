@@ -30,30 +30,14 @@ struct EthereumSection: View {
                 HStack { ProgressView(); Text("Reading Ethereum…").foregroundStyle(.secondary) }
             }
 
-            VStack(spacing: 10) {
-                HStack(spacing: 12) {
-                    Button { showReceive = true } label: {
-                        Label("Receive", systemImage: "arrow.down").frame(maxWidth: .infinity)
-                    }
-                    Button { showSend = true } label: {
-                        Label("Send", systemImage: "arrow.up").frame(maxWidth: .infinity)
-                    }
-                }
-                HStack(spacing: 12) {
-                    Button { showWrap = true } label: {
-                        Label("Wrap LBC", systemImage: "arrow.right.circle").frame(maxWidth: .infinity)
-                    }
-                    Button { showUnwrap = true } label: {
-                        Label("Unwrap", systemImage: "arrow.left.circle").frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .buttonStyle(.bordered)
-            .disabled(wallet.ethereum == nil)
+            EthereumActions(showReceive: $showReceive, showSend: $showSend, showWrap: $showWrap, showUnwrap: $showUnwrap)
+                .disabled(wallet.ethereum == nil)
 
-            ForEach(wallet.ethActivity.prefix(3)) { EthereumActivityRow(item: $0) }
-            if !wallet.bridgeDeposits.isEmpty {
-                ForEach(wallet.bridgeDeposits.filter { $0.status != .minted }.prefix(3)) { BridgeDepositRow(deposit: $0) }
+            ForEach(Array(wallet.ethActivity.prefix(3))) { item in
+                EthereumActivityRow(item: item)
+            }
+            ForEach(openDeposits) { deposit in
+                BridgeDepositRow(deposit: deposit, onMint: nil)
             }
         } header: {
             Text("Ethereum")
@@ -73,6 +57,41 @@ struct EthereumSection: View {
         }
         .sheet(isPresented: $showUnwrap) {
             NavigationStack { UnwrapView() }
+        }
+    }
+}
+
+extension EthereumSection {
+    /// Deposits not yet minted, newest few.
+    fileprivate var openDeposits: [LBCBridge.Deposit] {
+        Array(model.wallet.bridgeDeposits.filter { $0.status != .minted }.prefix(3))
+    }
+}
+
+/// Receive / Send / Wrap / Unwrap buttons.
+private struct EthereumActions: View {
+    @Binding var showReceive: Bool
+    @Binding var showSend: Bool
+    @Binding var showWrap: Bool
+    @Binding var showUnwrap: Bool
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                button("Receive", "arrow.down") { showReceive = true }
+                button("Send", "arrow.up") { showSend = true }
+            }
+            HStack(spacing: 12) {
+                button("Wrap LBC", "arrow.right.circle") { showWrap = true }
+                button("Unwrap", "arrow.left.circle") { showUnwrap = true }
+            }
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private func button(_ title: String, _ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon).frame(maxWidth: .infinity)
         }
     }
 }
@@ -237,7 +256,7 @@ struct WrapView: View {
             if !wallet.bridgeDeposits.isEmpty {
                 Section {
                     ForEach(wallet.bridgeDeposits) { deposit in
-                        BridgeDepositRow(deposit: deposit) { minting = deposit }
+                        BridgeDepositRow(deposit: deposit, onMint: { minting = deposit })
                     }
                 } header: {
                     Text("Your deposits")
