@@ -50,13 +50,16 @@ struct ClaimDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if isChannel {
-                    AsyncImage(url: claim.value?.cover?.url.flatMap(URL.init(string:))) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.secondary.opacity(0.2)
-                    }
-                    .frame(height: 140)
-                    .clipped()
+                    Color.secondary.opacity(0.2)
+                        .frame(height: 140)
+                        .overlay {
+                            AsyncImage(url: claim.value?.cover?.url.flatMap(URL.init(string:))) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Color.clear
+                            }
+                        }
+                        .clipped()
                 } else {
                     ZStack {
                         if let player {

@@ -216,13 +216,18 @@ private struct ShortPage: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            AsyncImage(url: item.claim.thumbnailURL) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Color(white: 0.08)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
+            // Color takes exactly the space offered, so a filling image can't grow the page
+            // (which pushed the action buttons off screen once the thumbnail loaded).
+            Color(white: 0.08)
+                .overlay {
+                    AsyncImage(url: item.claim.thumbnailURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Color.clear
+                    }
+                }
+                .clipped()
+                .ignoresSafeArea()
 
             if let player {
                 PlayerLayerView(player: player)
