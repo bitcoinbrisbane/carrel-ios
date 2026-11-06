@@ -20,7 +20,7 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "Packages/LBRYKit/Sources/LBRYKit/Chain/Checkpoint+Mainnet.swift"
 
-# Current list per lbry-sdk-ng (Oct 2026); the old spv1x.lbry.com hubs are gone.
+# Same list as the lbc.exchange bridge (verified alive Oct 2026); the old spv1x.lbry.com hubs are gone.
 DEFAULT_HUBS = [
     "a-hub1.odysee.com", "b-hub1.odysee.com", "c-hub1.odysee.com", "s-hub1.odysee.com",
     "hub.lbry.grin.io", "hub.lizard.technology", "s1.lbry.network",
@@ -63,9 +63,10 @@ def main():
         try:
             hub = Hub(host, int(port or 50001))
             hub.call("server.version", ["Carrel checkpoint script", "0.113.0"])
-            tip = hub.call("blockchain.headers.subscribe", [True])["height"]
+            tip_raw = hub.call("blockchain.headers.subscribe", [True])
+            tip = (tip_raw[0] if isinstance(tip_raw, list) else tip_raw)["height"]
             height = tip - args.depth
-            raw = bytes.fromhex(hub.call("blockchain.block.headers", [height - 1, 2, 0, False])["hex"])
+            raw = bytes.fromhex(hub.call("blockchain.block.headers", [height - 1, 2])["hex"])
             break
         except Exception as e:  # try the next hub
             print(f"{candidate}: {e}", file=sys.stderr)

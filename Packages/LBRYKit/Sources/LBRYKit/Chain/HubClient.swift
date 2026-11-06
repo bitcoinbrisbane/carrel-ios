@@ -20,8 +20,8 @@ public struct HubServer: Sendable, Hashable {
         self.useTLS = useTLS
     }
 
-    /// Default hubs, per lbry-sdk-ng's refreshed list (Oct 2026). The old
-    /// spv1x.lbry.com hubs were dropped. Some of these may still be offline.
+    /// Default hubs: the same list the lbc.exchange bridge uses (Odysee hubs verified
+    /// alive Oct 2026, plus community hubs). The old spv1x.lbry.com hubs are gone.
     public static let defaults: [HubServer] = [
         "a-hub1.odysee.com", "b-hub1.odysee.com", "c-hub1.odysee.com", "s-hub1.odysee.com",
         "hub.lbry.grin.io", "hub.lizard.technology", "s1.lbry.network",
@@ -186,7 +186,9 @@ public actor HubClient: HeaderSource {
 
     public func tip() async throws -> (height: Int, header: BlockHeader) {
         let result = try await call("blockchain.headers.subscribe", [true])
-        guard let dict = result as? [String: Any],
+        // Python hub returns an object; some servers wrap it in an array.
+        let tip = (result as? [Any])?.first ?? result
+        guard let dict = tip as? [String: Any],
               let height = dict["height"] as? Int,
               let hex = dict["hex"] as? String else {
             throw HubError.badResponse("headers.subscribe")
@@ -195,8 +197,8 @@ public actor HubClient: HeaderSource {
     }
 
     public func headers(from height: Int, count: Int) async throws -> [BlockHeader] {
-        // params: start_height, count, cp_height (0 = no proof), b64 (false = plain hex)
-        let result = try await call("blockchain.block.headers", [height, count, 0, false])
+        // Just [start, count]: works on both the Python hub and herald.go (as used by lbc.exchange).
+        let result = try await call("blockchain.block.headers", [height, count])
         guard let dict = result as? [String: Any], let hex = dict["hex"] as? String else {
             throw HubError.badResponse("block.headers")
         }
