@@ -102,7 +102,9 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 
 **Spending.** Sends, tips (a support output paying the creator) and supports (paying yourself) use the same coin selection, fees (50 dewies/byte), legacy P2PKH signing and pre-broadcast signature self-check as lbc.exchange. Signing goes through Bitcoin Core's libsecp256k1 (RFC 6979, low-S). The tests check the Swift output byte-for-byte against transactions built by the bridge's TypeScript wallet.
 
-**Still to do:** wallet screens (balance, receive QR, send, Tip button in Shorts), first-run create/restore flow, and the encrypted taste-profile backup keyed from the wallet seed.
+**Screens.** Wallet tab: create or restore (LBRY Desktop / Odysee phrases), balance with pending and supported amounts, receive with QR code, send with a fee review, activity with a shield on transactions verified against our own headers, and "Show recovery phrase". Tip button in Shorts and on every video page (1, 5, 10, 25 LBC or a custom amount, fee shown before sending).
+
+**Still to do:** the encrypted taste-profile backup keyed from the wallet seed, withdrawing your own supports, and a nudge to make an offline copy of the phrase once the balance grows.
 
 ## Roadmap
 

@@ -11,6 +11,8 @@ public struct Claim: Decodable, Identifiable, Hashable, Sendable {
     public let timestamp: Int?
     public let signingChannel: ChannelRef?
     public let value: ClaimValue?
+    /// The address that owns the claim. Tips are support outputs paying this address.
+    public var address: String? = nil
 
     public var id: String { claimId }
 
@@ -38,6 +40,7 @@ public struct Claim: Decodable, Identifiable, Hashable, Sendable {
         case timestamp
         case signingChannel = "signing_channel"
         case value
+        case address
     }
 }
 

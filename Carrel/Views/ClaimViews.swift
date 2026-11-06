@@ -44,6 +44,7 @@ struct ClaimDetailView: View {
     let claim: Claim
     @State private var player: AVPlayer?
     @State private var error: String?
+    @State private var showTip = false
 
     var body: some View {
         ScrollView {
@@ -83,7 +84,15 @@ struct ClaimDetailView: View {
                             .tint(Color.carrelAccent)
                             .textSelection(.enabled)
                     }
-                    ShareLink(item: claim.lbryURL) { Label("Share lbry:// link", systemImage: "square.and.arrow.up") }
+                    HStack(spacing: 12) {
+                        if !isChannel, claim.address != nil {
+                            Button { showTip = true } label: { Label("Tip", systemImage: "l.circle") }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color.carrelAccent)
+                                .foregroundStyle(.black)
+                        }
+                        ShareLink(item: claim.lbryURL) { Label("Share lbry:// link", systemImage: "square.and.arrow.up") }
+                    }
                 }
                 .padding(.horizontal)
             }
@@ -99,6 +108,10 @@ struct ClaimDetailView: View {
             }
             return .systemAction
         })
+        .sheet(isPresented: $showTip) {
+            NavigationStack { TipSheet(claim: claim) }
+                .presentationDetents([.medium, .large])
+        }
         .task { await load() }
         .onDisappear { player?.pause() }
     }

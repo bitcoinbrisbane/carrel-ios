@@ -15,6 +15,7 @@ struct ShortsView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var feedbackFor: RankedClaim?
+    @State private var tipFor: RankedClaim?
     @State private var toast: String?
 
     private let feed = ShortsFeed()
@@ -31,6 +32,7 @@ struct ShortsView: View {
                         isLiked: model.taste.liked.contains(item.id),
                         onLike: { toggleLike(item) },
                         onNotForMe: { feedbackFor = item },
+                        onTip: { tipFor = item },
                         onFinished: { model.record(.watchedToEnd, on: item.claim) }
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
@@ -80,6 +82,10 @@ struct ShortsView: View {
             notForMeButtons(item)
         } message: { _ in
             Text("This stays on your phone and tunes your feed.")
+        }
+        .sheet(item: $tipFor) { item in
+            NavigationStack { TipSheet(claim: item.claim) }
+                .presentationDetents([.medium, .large])
         }
         .task { if items.isEmpty { await reload() } }
         .onChange(of: currentID) { oldID, newID in
@@ -201,6 +207,7 @@ private struct ShortPage: View {
     let isLiked: Bool
     let onLike: () -> Void
     let onNotForMe: () -> Void
+    let onTip: () -> Void
     let onFinished: () -> Void
 
     @State private var player: AVPlayer?
@@ -275,6 +282,7 @@ private struct ShortPage: View {
             )
             .accessibilityAddTraits(isLiked ? .isSelected : [])
             ActionButton(systemImage: "hand.thumbsdown", label: "Not for me", action: onNotForMe)
+            ActionButton(systemImage: "l.circle", label: "Tip", action: onTip)
             ShareLink(item: item.claim.lbryURL) {
                 ActionLabel(systemImage: "arrowshape.turn.up.right", label: "Share")
             }

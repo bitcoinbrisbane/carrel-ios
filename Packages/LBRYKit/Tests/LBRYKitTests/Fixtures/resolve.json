@@ -15,22 +15,40 @@
         "canonical_url": "lbry://@carrel#c",
         "value": {
           "title": "Carrel",
-          "thumbnail": { "url": "https://example.com/channel.jpg" }
+          "thumbnail": {
+            "url": "https://example.com/channel.jpg"
+          }
         }
       },
       "value": {
         "title": "Hello from Carrel",
         "description": "Test fixture shaped like an lbrynet resolve response.",
-        "thumbnail": { "url": "https://example.com/thumb.jpg" },
-        "tags": ["demo", "bitcoin"],
+        "thumbnail": {
+          "url": "https://example.com/thumb.jpg"
+        },
+        "tags": [
+          "demo",
+          "bitcoin"
+        ],
         "release_time": "1762380000",
         "stream_type": "video",
-        "video": { "duration": 125, "width": 1920, "height": 1080 },
-        "source": { "sd_hash": "deadbeef", "media_type": "video/mp4" }
-      }
+        "video": {
+          "duration": 125,
+          "width": 1920,
+          "height": 1080
+        },
+        "source": {
+          "sd_hash": "deadbeef",
+          "media_type": "video/mp4"
+        }
+      },
+      "address": "bMg8mCxn8kjZPKQ4rihZPEeq4aFMLNQf4k"
     },
     "lbry://missing": {
-      "error": { "name": "NOT_FOUND", "text": "Could not find claim at \"lbry://missing\"." }
+      "error": {
+        "name": "NOT_FOUND",
+        "text": "Could not find claim at \"lbry://missing\"."
+      }
     }
   }
 }

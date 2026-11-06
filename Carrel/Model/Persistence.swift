@@ -33,6 +33,24 @@ enum TasteStore {
     }
 }
 
+/// The CarrelChain header window (last 100 validated headers), so launches sync
+/// only what's new instead of starting from the checkpoint each time.
+enum ChainStore {
+    static var url: URL {
+        TasteStore.url.deletingLastPathComponent().appendingPathComponent("headers.json")
+    }
+
+    static func load() -> HeaderChain? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(HeaderChain.self, from: data)
+    }
+
+    static func save(_ chain: HeaderChain) {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(chain).write(to: url, options: .atomic)
+    }
+}
+
 /// Streaming URLs from the SDK's `get`, cached so the next clips can be
 /// fetched ahead of time and play instantly when swiped to.
 actor StreamURLCache {

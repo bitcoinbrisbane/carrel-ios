@@ -45,6 +45,7 @@ final class DecodingTests: XCTestCase {
         XCTAssertEqual(claim.duration, 125)
         XCTAssertEqual(claim.signingChannel?.title, "Carrel")
         XCTAssertNotNil(claim.releaseDate)
+        XCTAssertEqual(claim.address, "bMg8mCxn8kjZPKQ4rihZPEeq4aFMLNQf4k")
         XCTAssertNil(entries["lbry://missing"]?.claim)
     }
 

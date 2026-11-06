@@ -21,6 +21,7 @@ struct CarrelApp: App {
 final class AppModel {
     let client = LBRYClient()
     let streams = StreamURLCache()
+    let wallet = WalletModel()
     var filter = ContentFilter()
     var deepLinkClaim: Claim?
     var deepLinkError: String?
@@ -65,6 +66,8 @@ struct RootView: View {
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
             NavigationStack { LibraryView() }
                 .tabItem { Label("Library", systemImage: "books.vertical") }
+            NavigationStack { WalletView() }
+                .tabItem { Label("Wallet", systemImage: "wallet.bifold") }
         }
         .sheet(item: $model.deepLinkClaim) { claim in
             NavigationStack { ClaimDetailView(claim: claim) }
