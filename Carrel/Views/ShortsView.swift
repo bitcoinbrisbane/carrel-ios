@@ -21,6 +21,8 @@ struct ShortsView: View {
     @State private var loadedMode: Mode?
     /// Playback position of the current clip, 0…1, for the bar under the switcher.
     @State private var progress: Double = 0
+    /// Public counts from Odysee, fetched per page.
+    @State private var reactionCounts: [String: ReactionCounts] = [:]
 
     enum Mode: String, CaseIterable {
         case following = "Following"
@@ -98,6 +100,7 @@ struct ShortsView: View {
                         item: item,
                         isActive: item.id == currentID,
                         isLiked: model.taste.liked.contains(item.id),
+                        publicLikes: reactionCounts[item.id]?.likes,
                         onLike: { toggleLike(item) },
                         onNotForMe: { feedbackFor = item },
                         onTip: { tipFor = item },
@@ -259,9 +262,15 @@ struct ShortsView: View {
                                                       filter: model.filter, client: model.client)
             }
             let known = Set(items.map(\.id))
-            items += ranked.filter { !known.contains($0.id) }
+            let added = ranked.filter { !known.contains($0.id) }
+            items += added
             page += 1
             error = nil
+            let reactions = model.reactions
+            Task {
+                let counts = await reactions.counts(for: added.map(\.id))
+                reactionCounts.merge(counts) { $1 }
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -287,6 +296,8 @@ private struct ShortPage: View {
     let item: RankedClaim
     let isActive: Bool
     let isLiked: Bool
+    /// Odysee's public like count, when known.
+    let publicLikes: Int?
     let onLike: () -> Void
     let onNotForMe: () -> Void
     let onTip: () -> Void
@@ -366,10 +377,12 @@ private struct ShortPage: View {
         VStack(spacing: 18) {
             ActionButton(
                 systemImage: isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
-                label: "Like",
+                label: publicLikes.map(ReactionCounts.compact) ?? "Like",
                 tint: isLiked ? .carrelAccent : .white,
                 action: onLike
             )
+            .accessibilityLabel("Like")
+            .accessibilityValue(publicLikes.map { "\($0) likes on Odysee" } ?? "")
             .accessibilityAddTraits(isLiked ? .isSelected : [])
             ActionButton(systemImage: "hand.thumbsdown", label: "Not for me", action: onNotForMe)
             ActionButton(systemImage: "l.circle", label: "Tip", action: onTip)

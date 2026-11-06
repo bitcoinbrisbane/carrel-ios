@@ -22,6 +22,11 @@ final class AppModel {
     let client = LBRYClient()
     let streams = StreamURLCache()
     let wallet = WalletModel()
+    /// Public like counts from Odysee (read-only; Carrel likes stay private).
+    let reactions = OdyseeReactions(tokenStore: .init(
+        load: { UserDefaults.standard.string(forKey: "odysee.authToken") },
+        save: { UserDefaults.standard.set($0, forKey: "odysee.authToken") }
+    ))
     var filter = ContentFilter()
     var deepLinkClaim: Claim?
     var deepLinkError: String?

@@ -46,6 +46,7 @@ struct ClaimDetailView: View {
     @State private var timeObserver: Any?
     @State private var error: String?
     @State private var showTip = false
+    @State private var counts: ReactionCounts?
 
     var body: some View {
         if isChannel {
@@ -84,6 +85,17 @@ struct ClaimDetailView: View {
                         }
                         ShareLink(item: claim.lbryURL) { Label("Share", systemImage: "square.and.arrow.up") }
                             .buttonStyle(.bordered)
+                        Spacer()
+                        if let counts {
+                            HStack(spacing: 10) {
+                                Label(ReactionCounts.compact(counts.likes), systemImage: "hand.thumbsup")
+                                Label(ReactionCounts.compact(counts.dislikes), systemImage: "hand.thumbsdown")
+                            }
+                            .font(.footnote.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(counts.likes) likes and \(counts.dislikes) dislikes on Odysee")
+                        }
                     }
                     if let description = claim.value?.description, !description.isEmpty {
                         // URLs, @handles and r/subs become links (see Linkifier).
@@ -113,6 +125,7 @@ struct ClaimDetailView: View {
                 .presentationDetents([.medium, .large])
         }
         .task { await load() }
+        .task { counts = await model.reactions.counts(for: claim.claimId) }
         .onDisappear { stop() }
     }
 
