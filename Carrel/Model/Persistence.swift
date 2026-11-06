@@ -6,9 +6,13 @@ import LBRYKit
 enum TasteStore {
 
     static var url: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Carrel", isDirectory: true)
-        return dir.appendingPathComponent("taste.json")
+        #if os(tvOS)
+        // tvOS apps may only keep files in Caches (the system can purge it when short of space).
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        #else
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        #endif
+        return base.appendingPathComponent("Carrel", isDirectory: true).appendingPathComponent("taste.json")
     }
 
     static func load() -> TasteProfile {

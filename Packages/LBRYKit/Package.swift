@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "LBRYKit",
-    platforms: [.iOS(.v17), .macOS(.v14)],
+    platforms: [.iOS(.v17), .tvOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "LBRYKit", targets: ["LBRYKit"])
     ],

@@ -39,6 +39,7 @@ Carrel/                 SwiftUI app (iOS 17+)
   CarrelApp.swift       App entry, AppModel, tabs, deep-link handling
   Model/                Taste persistence, streaming-URL prefetch cache
   Views/                Home (For you), Shorts, Search, Library, Wallet, channel page, video page, tip sheet
+CarrelTV/               Apple TV app (tvOS 17+): Home, Shorts, Search, Library, player, tip-by-QR
 Packages/LBRYKit/       Pure-Swift LBRY client
   LBRYClient.swift      JSON-RPC client: resolve, claim_search, get, Lighthouse search
   Models.swift          Claim, ChannelRef, ClaimValue, Page, ClaimSearchParams
@@ -119,6 +120,19 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 **Screens.** Wallet tab: create or restore (LBRY Desktop / Odysee phrases), balance with pending and supported amounts, receive with QR code, send with a fee review, activity with a shield on transactions verified against our own headers, and "Show recovery phrase". Tip button in Shorts and on every video page (1, 5, 10, 25 LBC or a custom amount, fee shown before sending).
 
 **Still to do:** the encrypted taste-profile backup keyed from the wallet seed, withdrawing your own supports, and a nudge to make an offline copy of the phrase once the balance grows.
+
+## Apple TV
+
+`CarrelTV` is a tvOS 17 app built on the same LBRYKit, with a 10-foot UI: run `xcodegen`, pick the **CarrelTV** scheme and an Apple TV simulator.
+
+- **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards.
+- **Video page:** backdrop, details, Play / Resume / From the start, Like, Follow, Tip. Playback is the system player (scrubbing, info panel with title and channel), saving your place every 10 seconds.
+- **Shorts:** one 9:16 clip at a time, centred. Swipe down or up on the remote for the next or previous clip, click or Play/Pause to pause, swipe right for Like, Not for me (skip, less from a channel, less #topic, hide a channel), Follow, Tip and the For you / Following switch. The same taste signals as the iPhone (likes, watched to the end, quick skips).
+- **Search:** the system TV keyboard, searching as you type; `lbry://` links and @channels resolve directly.
+- **Library:** Continue watching, channels you follow, recently watched; channel pages with banner, Follow and a grid of their videos.
+- **Tipping without keys on the TV:** Tip shows a QR code for `carrel://tip?uri=lbry://…`. Scanning it with the iPhone camera opens Carrel there with the tip sheet ready, so the fee review and signing stay on the phone.
+
+The TV keeps its own taste and library for now, in Caches (tvOS's only file storage, which the system can clear when short of space). Syncing them with the iPhone is the next step.
 
 ## Ethereum and lbc.exchange
 

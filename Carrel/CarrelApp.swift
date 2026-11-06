@@ -30,6 +30,8 @@ final class AppModel {
     var filter = ContentFilter()
     var deepLinkClaim: Claim?
     var deepLinkError: String?
+    /// A tip started on Apple TV (`carrel://tip?uri=…` from its QR code).
+    var tipRequest: Claim?
 
     /// Learned on this device only; saved after every change.
     var taste: TasteProfile = TasteStore.load() {
@@ -116,8 +118,28 @@ final class AppModel {
         }
     }
 
-    /// Handle `lbry://` and odysee.com links opened from outside the app.
+    /// Handle `lbry://` and odysee.com links opened from outside the app, and
+    /// `carrel://tip?uri=lbry://…` from the Apple TV app's tip QR code.
     func open(_ link: String) {
+        if let components = URLComponents(string: link), components.scheme?.lowercased() == "carrel" {
+            guard components.host == "tip",
+                  let uri = components.queryItems?.first(where: { $0.name == "uri" })?.value.flatMap(LBRYURL.normalise) else {
+                deepLinkError = "Carrel can't open that link."
+                return
+            }
+            Task {
+                do {
+                    guard let claim = try await client.resolve(uri) else {
+                        deepLinkError = "Nothing found at \(uri)."
+                        return
+                    }
+                    tipRequest = claim
+                } catch {
+                    deepLinkError = error.localizedDescription
+                }
+            }
+            return
+        }
         guard let uri = LBRYURL.normalise(link) else {
             deepLinkError = "Carrel can't open that link."
             return
@@ -152,6 +174,10 @@ struct RootView: View {
         }
         .sheet(item: $model.deepLinkClaim) { claim in
             NavigationStack { ClaimDetailView(claim: claim) }
+        }
+        .sheet(item: $model.tipRequest) { claim in
+            NavigationStack { TipSheet(claim: claim) }
+                .presentationDetents([.medium, .large])
         }
         .alert("Couldn't open link", isPresented: .constant(model.deepLinkError != nil)) {
             Button("OK") { model.deepLinkError = nil }
