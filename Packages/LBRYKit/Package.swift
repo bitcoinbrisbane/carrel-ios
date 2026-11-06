@@ -7,8 +7,17 @@ let package = Package(
     products: [
         .library(name: "LBRYKit", targets: ["LBRYKit"])
     ],
+    dependencies: [
+        // Only used off Apple platforms (CI on Linux); iOS/macOS use CryptoKit.
+        .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0")
+    ],
     targets: [
-        .target(name: "LBRYKit"),
+        .target(
+            name: "LBRYKit",
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))
+            ]
+        ),
         .testTarget(
             name: "LBRYKitTests",
             dependencies: ["LBRYKit"],
