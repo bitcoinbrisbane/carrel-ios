@@ -11,6 +11,7 @@ public struct RankedClaim: Identifiable, Hashable, Sendable {
     public enum Reason: Hashable, Sendable {
         case topic(String)        // normalised tag
         case channel(String)      // @name
+        case following(String)    // @name of a followed channel
         case exploring
         case trending
 
@@ -18,6 +19,7 @@ public struct RankedClaim: Identifiable, Hashable, Sendable {
             switch self {
             case .topic(let tag): return "Matches #\(tag)"
             case .channel(let name): return "You liked clips from \(name)"
+            case .following(let name): return "You follow \(name)"
             case .exploring: return "Exploring: new to you"
             case .trending: return "Trending on LBRY"
             }

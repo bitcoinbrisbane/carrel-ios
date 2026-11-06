@@ -195,4 +195,35 @@ final class ShortsFeedTests: XCTestCase {
     func testNewViewerGetsTrendingOnly() {
         XCTAssertEqual(ShortsFeed().queries(for: TasteProfile(), page: 1, blockedTags: []).count, 1)
     }
+
+    func testFollowingQueryAndTimeline() {
+        var library = UserLibrary()
+        let feed = ShortsFeed()
+        XCTAssertNil(feed.followingQuery(library: library, taste: TasteProfile(), page: 1, blockedTags: []))
+
+        library.follow(ChannelRef(claimId: "ch-@sail", name: "@sail", canonicalURL: nil, value: nil), at: now)
+        library.follow(ChannelRef(claimId: "ch-@loud", name: "@loud", canonicalURL: nil, value: nil), at: now)
+        var taste = TasteProfile()
+        taste.mutedChannels.insert("ch-@loud")
+        taste.mutedTopics.insert("politics")
+        taste.markSeen("old")   // seen in For you: still shown in Following
+
+        let q = feed.followingQuery(library: library, taste: taste, page: 3, blockedTags: ["nsfw"])
+        XCTAssertEqual(q?.channelIDs, ["ch-@sail"])
+        XCTAssertEqual(q?.duration, "<=180")
+        XCTAssertEqual(q?.orderBy, ["release_time"])
+        XCTAssertEqual(q?.page, 3)
+        XCTAssertEqual(q?.notTags, ["nsfw", "politics"])
+
+        let timeline = feed.followingTimeline([
+            clip("old", channel: "@sail", ageDays: 3),
+            clip("new", channel: "@sail", ageDays: 0.1),
+            clip("new", channel: "@sail", ageDays: 0.1),
+            clip("pol", channel: "@sail", tags: ["politics"]),
+            clip("loud", channel: "@loud"),
+        ], taste: taste, filter: ContentFilter())
+        XCTAssertEqual(timeline.map(\.id), ["new", "old"])
+        XCTAssertEqual(timeline[0].reason, .following("@sail"))
+        XCTAssertEqual(timeline[0].reason.text, "You follow @sail")
+    }
 }

@@ -43,6 +43,45 @@ public struct ShortsFeed: Sendable {
         return queries
     }
 
+    // MARK: Following
+
+    /// Short videos from followed channels, newest first. Nil when nothing is followed.
+    public func followingQuery(library: UserLibrary, taste: TasteProfile, page: Int, blockedTags: [String]) -> ClaimSearchParams? {
+        let channels = library.followedChannelIDs.filter { !taste.mutedChannels.contains($0) }
+        guard !channels.isEmpty else { return nil }
+        var q = ClaimSearchParams()
+        q.channelIDs = Array(channels.prefix(50))
+        q.duration = "<=\(maxDuration)"
+        q.notTags = blockedTags + taste.mutedTopics.sorted()
+        q.orderBy = ["release_time"]
+        q.page = page
+        q.pageSize = pageSize
+        return q
+    }
+
+    /// The Following timeline: newest first, mutes respected, and (unlike For you)
+    /// clips already seen stay in, because this is a timeline rather than a recommendation.
+    public func followingTimeline(_ claims: [Claim], taste: TasteProfile, filter: ContentFilter) -> [RankedClaim] {
+        var seen = Set<String>()
+        return filter.apply(claims)
+            .filter { claim in
+                guard seen.insert(claim.claimId).inserted else { return false }
+                if let channel = claim.signingChannel, taste.mutedChannels.contains(channel.claimId) { return false }
+                return !TasteProfile.tags(of: claim).contains { taste.mutedTopics.contains($0) }
+            }
+            .sorted { ($0.releaseDate ?? .distantPast) > ($1.releaseDate ?? .distantPast) }
+            .map { RankedClaim(claim: $0, score: 0, reason: .following($0.signingChannel?.name ?? "this channel")) }
+    }
+
+    public func loadFollowing(
+        page: Int, library: UserLibrary, taste: TasteProfile, filter: ContentFilter, client: LBRYClient
+    ) async throws -> [RankedClaim] {
+        guard let query = followingQuery(library: library, taste: taste, page: page, blockedTags: Array(filter.blockedTags)) else {
+            return []
+        }
+        return followingTimeline(try await client.claimSearch(query).items, taste: taste, filter: filter)
+    }
+
     /// Fetch and rank one page. Failed queries are skipped; throws only if all fail.
     public func load(
         page: Int,

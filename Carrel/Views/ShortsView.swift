@@ -17,12 +17,80 @@ struct ShortsView: View {
     @State private var feedbackFor: RankedClaim?
     @State private var tipFor: RankedClaim?
     @State private var toast: String?
+    @State private var mode: Mode = .forYou
+    @State private var loadedMode: Mode?
+    /// Playback position of the current clip, 0…1, for the bar under the switcher.
+    @State private var progress: Double = 0
+
+    enum Mode: String, CaseIterable {
+        case following = "Following"
+        case forYou = "For you"
+    }
 
     private let feed = ShortsFeed()
     /// Leaving a clip sooner than this counts as a skip.
     private let quickSkipSeconds: TimeInterval = 2
 
     var body: some View {
+        ZStack(alignment: .top) {
+            feedView
+            header
+        }
+        .background(Color.black)
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 24) {
+                ForEach(Mode.allCases, id: \.self) { m in
+                    Button {
+                        guard mode != m else { return }
+                        mode = m
+                    } label: {
+                        Text(m.rawValue)
+                            .font(.headline)
+                            .foregroundStyle(mode == m ? Color.white : Color.white.opacity(0.65))
+                            .padding(.bottom, 6)
+                            .overlay(alignment: .bottom) {
+                                if mode == m { Capsule().fill(.white).frame(height: 2) }
+                            }
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(mode == m ? .isSelected : [])
+                }
+            }
+            .shadow(color: .black.opacity(0.4), radius: 4)
+
+            // Progress through the current clip.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.white.opacity(0.25))
+                    Capsule().fill(.white).frame(width: geo.size.width * progress)
+                }
+            }
+            .frame(height: 3)
+            .padding(.horizontal, 16)
+            .opacity(items.isEmpty ? 0 : 1)
+            .accessibilityHidden(true)
+
+            if let toast {
+                Label(toast, systemImage: "checkmark")
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.thickMaterial, in: Capsule())
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: Feed
+
+    private var feedView: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(items) { item in
@@ -33,7 +101,8 @@ struct ShortsView: View {
                         onLike: { toggleLike(item) },
                         onNotForMe: { feedbackFor = item },
                         onTip: { tipFor = item },
-                        onFinished: { model.record(.watchedToEnd, on: item.claim) }
+                        onFinished: { model.record(.watchedToEnd, on: item.claim) },
+                        onProgress: { if item.id == currentID { progress = $0 } }
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
                     .id(item.id)
@@ -45,7 +114,6 @@ struct ShortsView: View {
         .scrollPosition(id: $currentID)
         .scrollIndicators(.hidden)
         .ignoresSafeArea()
-        .background(Color.black)
         .overlay {
             if items.isEmpty {
                 if isLoading {
@@ -59,18 +127,19 @@ struct ShortsView: View {
                         Button("Try again") { Task { await reload() } }
                     }
                     .foregroundStyle(.white)
+                } else if mode == .following {
+                    ContentUnavailableView {
+                        Label(model.library.following.isEmpty ? "Follow some channels" : "No Shorts yet",
+                              systemImage: "person.2")
+                    } description: {
+                        Text(model.library.following.isEmpty
+                             ? "Tap Follow on a channel and its short videos show up here, newest first."
+                             : "Channels you follow haven't posted short videos lately.")
+                    } actions: {
+                        Button("Back to For you") { mode = .forYou }
+                    }
+                    .foregroundStyle(.white)
                 }
-            }
-        }
-        .overlay(alignment: .top) {
-            if let toast {
-                Label(toast, systemImage: "checkmark")
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(.thickMaterial, in: Capsule())
-                    .padding(.top, 60)
-                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .confirmationDialog(
@@ -87,8 +156,14 @@ struct ShortsView: View {
             NavigationStack { TipSheet(claim: item.claim) }
                 .presentationDetents([.medium, .large])
         }
-        .task { if items.isEmpty { await reload() } }
+        .task(id: mode) {
+            // Only reload when the mode changes, not every time the tab reappears.
+            guard loadedMode != mode || items.isEmpty else { return }
+            loadedMode = mode
+            await reload()
+        }
         .onChange(of: currentID) { oldID, newID in
+            progress = 0
             leave(oldID)
             shownAt = Date()
             prefetchAround(newID)
@@ -175,7 +250,14 @@ struct ShortsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            let ranked = try await feed.load(page: page, taste: model.taste, filter: model.filter, client: model.client)
+            let ranked: [RankedClaim]
+            switch mode {
+            case .forYou:
+                ranked = try await feed.load(page: page, taste: model.taste, filter: model.filter, client: model.client)
+            case .following:
+                ranked = try await feed.loadFollowing(page: page, library: model.library, taste: model.taste,
+                                                      filter: model.filter, client: model.client)
+            }
             let known = Set(items.map(\.id))
             items += ranked.filter { !known.contains($0.id) }
             page += 1
@@ -209,8 +291,11 @@ private struct ShortPage: View {
     let onNotForMe: () -> Void
     let onTip: () -> Void
     let onFinished: () -> Void
+    let onProgress: (Double) -> Void
 
     @State private var player: AVPlayer?
+    /// Kept for the player's lifetime; it goes away with the player.
+    @State private var timeObserver: Any?
     @State private var failed = false
     @State private var reportedFinish = false
 
@@ -301,6 +386,12 @@ private struct ShortPage: View {
                 let p = AVPlayer(url: url)
                 p.isMuted = false
                 player = p
+                let report = onProgress
+                timeObserver = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.1, preferredTimescale: 600), queue: .main) { [weak p] time in
+                    guard let duration = p?.currentItem?.duration.seconds, duration.isFinite, duration > 0 else { return }
+                    let fraction = min(1, max(0, time.seconds / duration))
+                    MainActor.assumeIsolated { report(fraction) }
+                }
             } catch {
                 failed = true
                 return
