@@ -71,6 +71,33 @@ final class HomeFeedTests: XCTestCase {
         return t
     }
 
+    func testDiscoverShelves() throws {
+        var taste = likedSailing()
+        for i in 0..<2 { taste.record(.like, on: video("c\(i)", channel: "@cook", tags: ["cooking"])) }
+        taste.mutedTopics.insert("gaming")
+        taste.record(.lessTopic("music"), on: video("m", channel: "@m", tags: ["music"]))
+        let shelves = HomeFeed().discoverShelves(taste: taste, blockedTags: ["nsfw"], topicCount: 5, now: now)
+        let ids = shelves.map(\.id)
+        XCTAssertEqual(Array(ids.prefix(2)), ["top-week", "top-month"])
+        XCTAssertFalse(ids.contains("topic-sailing"), "already its own row (More #sailing)")
+        XCTAssertEqual(ids[2], "topic-cooking", "your other topics come first")
+        XCTAssertEqual(shelves[2].subtitle, "You watch a lot of this")
+        XCTAssertFalse(ids.contains("topic-gaming"), "muted")
+        XCTAssertFalse(HomeFeed().discoverShelves(taste: taste, blockedTags: [], now: now).map(\.id).contains("topic-music"),
+                       "turned down with Less #music")
+        XCTAssertEqual(shelves.count, 2 + 5)
+        XCTAssertEqual(shelves[0].params.orderBy, ["effective_amount"])
+        XCTAssertEqual(shelves[0].params.releaseTime, ">\(Int(now.timeIntervalSince1970) - 7 * 86_400)")
+        XCTAssertTrue(shelves.allSatisfy { $0.params.duration == ">=181" && $0.params.notTags?.contains("nsfw") == true })
+
+        let json = try XCTUnwrap(String(data: JSONEncoder().encode(shelves[0].params), encoding: .utf8))
+        XCTAssertTrue(json.contains("\"release_time\""))
+
+        let more = HomeFeed().moreToWatchQuery(page: 3, taste: taste, blockedTags: [])
+        XCTAssertEqual(more.page, 3)
+        XCTAssertEqual(more.duration, ">=181")
+    }
+
     func testQueriesFollowTasteAndLibrary() {
         var lib = UserLibrary()
         lib.follow(ChannelRef(claimId: "ch-@news", name: "@news", canonicalURL: nil, value: nil), at: now)

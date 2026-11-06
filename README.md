@@ -125,7 +125,7 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 
 `CarrelTV` is a tvOS 17 app built on the same LBRYKit, with a 10-foot UI: run `xcodegen`, pick the **CarrelTV** scheme and an Apple TV simulator.
 
-- **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards.
+- **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards. Below those, Discover shelves load as you scroll: Top this week and Top this month (most supported with LBC), then a shelf per topic (your other top topics first, then popular ones like news, technology, science, gaming and music, skipping anything you've muted or turned down), and finally an endless More to watch grid. Each video appears once per page.
 - **Video page:** backdrop, details, Play / Resume / From the start, Like, Follow, Tip. Playback is the system player (scrubbing, info panel with title and channel), saving your place every 10 seconds.
 - **Shorts:** one 9:16 clip at a time, centred. Swipe down or up on the remote for the next or previous clip, click or Play/Pause to pause, swipe right for Like, Not for me (skip, less from a channel, less #topic, hide a channel), Follow, Tip and the For you / Following switch. The same taste signals as the iPhone (likes, watched to the end, quick skips).
 - **Search:** the system TV keyboard, searching as you type; `lbry://` links and @channels resolve directly.

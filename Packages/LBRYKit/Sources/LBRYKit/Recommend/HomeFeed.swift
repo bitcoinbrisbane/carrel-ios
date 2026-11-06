@@ -217,6 +217,70 @@ public struct HomeFeed: Sendable {
         return Page(featured: featured, featuredMatch: featuredMatch, rows: rows)
     }
 
+    // MARK: Discover shelves
+
+    /// A row of more videos to browse below the personal rows (Apple TV's Home, where
+    /// there's room for many). Loaded lazily, one query each.
+    public struct Shelf: Identifiable, Sendable {
+        public let id: String
+        public let title: String
+        public let subtitle: String?
+        public let params: ClaimSearchParams
+    }
+
+    /// Popular LBRY topics, for shelves after the viewer's own top topics.
+    public static let discoverTopics = [
+        "news", "technology", "science", "education", "gaming", "music", "comedy",
+        "documentary", "history", "cryptocurrency", "outdoors", "cooking", "art", "sports",
+    ]
+
+    /// Top this week and month (most LBC staked), then a shelf per topic: the viewer's
+    /// strongest topics first, then popular ones. Muted or turned-down topics are skipped, as is the
+    /// topic already shown as "More #topic".
+    public func discoverShelves(taste: TasteProfile, blockedTags: [String], topicCount: Int = 10, now: Date = Date()) -> [Shelf] {
+        var base = ClaimSearchParams()
+        base.duration = ">=\(minDuration)"
+        base.notTags = blockedTags + taste.mutedTopics.sorted()
+        base.pageSize = 30
+
+        var shelves: [Shelf] = []
+        let nowSeconds = Int(now.timeIntervalSince1970)
+        for (id, title, days) in [("top-week", "Top this week", 7), ("top-month", "Top this month", 30)] {
+            var q = base
+            q.orderBy = ["effective_amount"]
+            q.releaseTime = ">\(nowSeconds - days * 86_400)"
+            shelves.append(Shelf(id: id, title: title, subtitle: "Most supported with LBC", params: q))
+        }
+
+        let alreadyShown = taste.topTopics(1).first?.tag
+        let personal = taste.topTopics(6).map(\.tag)
+        var seen: Set<String> = []
+        var topics: [(tag: String, yours: Bool)] = []
+        for tag in personal where tag != alreadyShown && seen.insert(tag).inserted { topics.append((tag, true)) }
+        for tag in Self.discoverTopics
+        where !taste.mutedTopics.contains(tag) && (taste.topics[tag] ?? 0) >= 0 && tag != alreadyShown && seen.insert(tag).inserted {
+            topics.append((tag, false))
+        }
+        for topic in topics.prefix(topicCount) {
+            var q = base
+            q.anyTags = [topic.tag]
+            q.orderBy = ["trending_group", "trending_mixed"]
+            shelves.append(Shelf(id: "topic-\(topic.tag)", title: "#\(topic.tag)",
+                                 subtitle: topic.yours ? "You watch a lot of this" : nil, params: q))
+        }
+        return shelves
+    }
+
+    /// The endless grid at the bottom: trending, page by page (page 1 already fed the rows).
+    public func moreToWatchQuery(page: Int, taste: TasteProfile, blockedTags: [String]) -> ClaimSearchParams {
+        var q = ClaimSearchParams()
+        q.duration = ">=\(minDuration)"
+        q.notTags = blockedTags + taste.mutedTopics.sorted()
+        q.pageSize = 40
+        q.page = page
+        return q
+    }
+
     /// Ranker score → a friendly "% match" (50% = no opinion either way).
     public static func matchPercent(_ score: Double) -> Int {
         Int((50 + 49 * tanh(score)).rounded())

@@ -124,6 +124,8 @@ public struct ClaimSearchParams: Encodable, Sendable {
     public var hasSource: Bool? = true
     /// Duration filter in seconds with an optional operator, e.g. "<=180".
     public var duration: String?
+    /// Release-time filter in Unix seconds with an operator, e.g. ">1700000000".
+    public var releaseTime: String?
     public var page: Int = 1
     public var pageSize: Int = 20
 
@@ -153,6 +155,7 @@ public struct ClaimSearchParams: Encodable, Sendable {
         case orderBy = "order_by"
         case hasSource = "has_source"
         case duration
+        case releaseTime = "release_time"
         case page
         case pageSize = "page_size"
     }
@@ -167,6 +170,7 @@ public struct ClaimSearchParams: Encodable, Sendable {
         try c.encodeIfPresent(orderBy, forKey: .orderBy)
         try c.encodeIfPresent(hasSource, forKey: .hasSource)
         try c.encodeIfPresent(duration, forKey: .duration)
+        try c.encodeIfPresent(releaseTime, forKey: .releaseTime)
         try c.encode(page, forKey: .page)
         try c.encode(pageSize, forKey: .pageSize)
     }
