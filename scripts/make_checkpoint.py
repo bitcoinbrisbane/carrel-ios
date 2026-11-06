@@ -15,14 +15,15 @@ import json
 import socket
 import sys
 
+# Current list per lbry-sdk-ng (Oct 2026); the old spv1x.lbry.com hubs are gone.
 DEFAULT_HUBS = [
-    "spv11.lbry.com", "spv12.lbry.com", "spv13.lbry.com", "spv14.lbry.com",
+    "a-hub1.odysee.com", "b-hub1.odysee.com", "c-hub1.odysee.com", "s-hub1.odysee.com",
     "hub.lbry.grin.io", "hub.lizard.technology", "s1.lbry.network",
 ]
 
 
 class Hub:
-    def __init__(self, host, port, timeout=10):
+    def __init__(self, host, port, timeout=5):
         self.sock = socket.create_connection((host, port), timeout=timeout)
         self.file = self.sock.makefile("rwb")
         self.next_id = 0
@@ -61,7 +62,7 @@ def main():
             raw = bytes.fromhex(hub.call("blockchain.block.headers", [height - 1, 2, 0, False])["hex"])
             break
         except Exception as e:  # try the next hub
-            print(f"// {candidate}: {e}", file=sys.stderr)
+            print(f"{candidate}: {e}", file=sys.stderr)
     else:
         sys.exit("no hub reachable")
 

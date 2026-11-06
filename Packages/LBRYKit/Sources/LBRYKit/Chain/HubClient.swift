@@ -20,10 +20,10 @@ public struct HubServer: Sendable, Hashable {
         self.useTLS = useTLS
     }
 
-    /// Defaults from lbry-sdk `conf.py` (lbryum_servers). Some may be offline.
+    /// Default hubs, per lbry-sdk-ng's refreshed list (Oct 2026). The old
+    /// spv1x.lbry.com hubs were dropped. Some of these may still be offline.
     public static let defaults: [HubServer] = [
-        "spv11.lbry.com", "spv12.lbry.com", "spv13.lbry.com", "spv14.lbry.com", "spv15.lbry.com",
-        "spv16.lbry.com", "spv17.lbry.com", "spv18.lbry.com", "spv19.lbry.com",
+        "a-hub1.odysee.com", "b-hub1.odysee.com", "c-hub1.odysee.com", "s-hub1.odysee.com",
         "hub.lbry.grin.io", "hub.lizard.technology", "s1.lbry.network",
     ].map { HubServer(host: $0) }
 }
