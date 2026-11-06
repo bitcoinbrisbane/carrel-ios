@@ -1,0 +1,113 @@
+{
+ "source": "bitcoinbrisbane/lbry.exchange src/functions/src/lib/lbc (vendored lBC-wallet core @ 93e19c1)",
+ "feePerByte": 50,
+ "mnemonics": [
+  {
+   "entropy": "00000000000000000000000000000000",
+   "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+  },
+  {
+   "entropy": "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
+   "phrase": "legal winner thank year wave sausage worth useful legal winner thank yellow"
+  },
+  {
+   "entropy": "8080808080808080808080808080808080808080808080808080808080808080",
+   "phrase": "letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic avoid letter advice cage absurd amount doctor acoustic bless"
+  }
+ ],
+ "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+ "lbrySeed": "35b628e60f78ee7ba39a902195e4b2fe33281a9ffa92a6a71e892baa75e99898d3873d028785ef7f8db39192f79863d03d737949b012596fe1d0230fcb4e2e8c",
+ "bip39Seed": "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4",
+ "account": {
+  "xprv": "xprv9s21ZrQH143K3x2ry4dNBCPwgykYnDvwosZ6BahqxzTLvHaJd7RaaxfdQoXwg2m9zYC28gGzVgSzEGj1F3u9unNH9hQoKKfRZ4dafj1ezhV",
+  "xpub": "xpub661MyMwAqRbcGS7L56ANYLLgF1b3BgeoB6Ugyy7TXKzKo5uTAejq8kz7G4iJcz2nTHyh5X3r75RTDyjBNJbK8AV6Gj4FT5Qpx2F7C7b4NmF",
+  "chainCode": "bdee61fc652ba3dc7bce14bd96d468a8dc261f45fc902b3ae00488d6ce831b6c",
+  "privateKey": "14b082eeeaab51167d3257c7777d62cb124b508fc07e198eb9987920a8412c0f"
+ },
+ "receive": [
+  {
+   "chain": 0,
+   "index": 0,
+   "privateKey": "8903c2d7ff68e5d84b854ae3026c7a19861de1d95c39cf313d972ed2977d859a",
+   "wif": "5Dpzem4T7B8rSmN98pKXrSU7JpCZHMieu7vTtv9Qwj8EeSyVKZvb",
+   "publicKey": "0387e276311918ef26060e44ac56f56e08dfbcaa0179e69a46629133f4aa67ba3b",
+   "address": "bMg8mCxn8kjZPKQ4rihZPEeq4aFMLNQf4k"
+  },
+  {
+   "chain": 0,
+   "index": 1,
+   "privateKey": "641cf68287ade3e70cfd83191a79c7424a36910e974a2d3e0982046036bb6d5f",
+   "wif": "5CbGCyni2etENsQmLEkdGjAajUDWNirvYTcEHk6PLM42AZ4FrM7G",
+   "publicKey": "03ecc0444931e4034622b7504b0349e40e74c0be456906406cff6b1ac3b19c8446",
+   "address": "bG2b4V74DtK1M1XhM2xbQZaxvRVbGmuwUx"
+  },
+  {
+   "chain": 0,
+   "index": 2,
+   "privateKey": "17a48348af71722788ce3a381bc8e6b17cd6d2c8a6b77072b68b2b38625d441e",
+   "wif": "5A2caqU6GiGXpSTa1rERoBkpgxn1MXWZ1FmqK6R4Ugs1nDzp3gCC",
+   "publicKey": "0270c3da5c382182a5c7c018aa58f1243f9060edb3f1759e308203cb79073e5e01",
+   "address": "bFZZfL8HQ5wbA3x4LtMmXDktS4zDkqydWQ"
+  }
+ ],
+ "change": [
+  {
+   "chain": 1,
+   "index": 0,
+   "privateKey": "2792ad41f56e3d766e996f5fbe8e856bb7c2ebef4015d6652f1eec1df53e956f",
+   "wif": "5AZae4WazrxQ5tdKrnBZhJ9WQHiu6r2jqwB7s6NwcBfuwuXZoN7B",
+   "publicKey": "02567e29ce13301eaea9e5631bf6e78b7bb542dd06ea5d8344c20d216e2d2834c9",
+   "address": "bYW5pfJpXWphPKEzyfvMFjiKeNhRtyS4GT"
+  },
+  {
+   "chain": 1,
+   "index": 1,
+   "privateKey": "aff06d572a4db02cd8048321aac2e2582e8f1674ebab28ea213ee0116a8b97e6",
+   "wif": "5F8fAnAXgJinMj6PDWr7KsCf5PR4eE3ZH2QwxCXMdr2LsqnkY1xv",
+   "publicKey": "039fd6bec354de4e02a5f8b738ffb56be3b89fef47fd61f392398d2ed9092a0d60",
+   "address": "bJUhixnLx3tn29bD4mh7RCL3cHYzJmoXnP"
+  }
+ ],
+ "bip32": {
+  "seed": "000102030405060708090a0b0c0d0e0f",
+  "master": {
+   "privateKey": "e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35",
+   "chainCode": "873dff81c02f525623fd1fe5167eac3a55a049de3d314bb42ee227ffed37d508",
+   "publicKey": "0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2"
+  },
+  "m/0'/1": {
+   "privateKey": "3c6cb8d0f6a264c91ea8b5030fadaa8e538b020f0a387421a12de9319dc93368",
+   "chainCode": "2a7857631386ba23dacac34180dd1983734e444fdbf774041578e9b6adb37c19",
+   "publicKey": "03501e454bf00751f24b1b489aa925215d66af2234e3891c3b21a52bedb3cd711c"
+  },
+  "m/0'/1/2'/2/1000000000": {
+   "privateKey": "471b76e389e528d6de6d816857e012c5455051cad6660850e58372a6c3e6e7c8",
+   "publicKey": "022a471424da5e657499d1ff51cb43c47481a03b1e77f951fe64cec9f5a48f7011"
+  }
+ },
+ "tip": {
+  "funding": {
+   "txid": "1f172e427cf423b9bac34aee6cfb2c771f02716ca918ae7c80f44a50568c896e",
+   "vout": 1,
+   "value": "1000000000",
+   "script": "76a91462214369d1ab3447cce99c8f13631b60688ae87c88ac"
+  },
+  "claimId": "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334",
+  "claimName": "hello",
+  "amount": "100000000",
+  "supportScript": "b60568656c6c6f1434231201908f7e6d5c4b3a291807f6e5d4c3b2a16d7576a9141f12619af48c5e7f3a4d65a4bbd07fb872474e7988ac",
+  "changeScript": "76a914d8e4086420c01e327a35eb46a1aedcfc16296e1088ac",
+  "fee": "12800",
+  "change": "899987200",
+  "size": 256,
+  "sighash0": "01f30d454cf4dc63c99b6e2bad79469004c49390b86e1d8444943cb690eeeafd",
+  "hex": "01000000016e898c56504af4807cae18a96c71021f772cfb6cee4ac3bab923f47c422e171f010000006b483045022100b38c81e19fe4190c7377ac689883c0a6d213cc2213c911ba5f72700ca2733d96022062fe07c598f9c6cc245df5105ada9ff483e0b692233e89d02d2f00930f7e15b401210387e276311918ef26060e44ac56f56e08dfbcaa0179e69a46629133f4aa67ba3bffffffff0200e1f5050000000037b60568656c6c6f1434231201908f7e6d5c4b3a291807f6e5d4c3b2a16d7576a9141f12619af48c5e7f3a4d65a4bbd07fb872474e7988ac00b7a435000000001976a914d8e4086420c01e327a35eb46a1aedcfc16296e1088ac00000000",
+  "txid": "eab8fffd3964381a1f014b86eb92b1d947a9f24f9b8b8bab40bec21105fceec6"
+ },
+ "spendSupport": {
+  "fee": "11300",
+  "change": "49988700",
+  "hex": "0100000001c6eefc0511c2be40ab8b8b9b4ff2a947d9b192eb864b011f1a386439fdffb8ea000000006a4730440220396fe0a2c1386969c597cd5b29008da9306c555e7881c91112d371605d61b3160220700057a911dd9872765cdff41ac77abac90b351e17948e35b641044708b2d74d01210270c3da5c382182a5c7c018aa58f1243f9060edb3f1759e308203cb79073e5e01ffffffff0280f0fa02000000001976a914242ec7be71ee81174e36de6cbe770af9b1881fdf88ac5cc4fa02000000001976a914d8e4086420c01e327a35eb46a1aedcfc16296e1088ac00000000",
+  "txid": "42ac7973590eb26e2cf0d8a4b88e158a089c86fb863ca1ca1c943b9c14118e96"
+ }
+}
