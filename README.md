@@ -10,6 +10,14 @@ A native iOS client for the LBRY network — a fast, self-custodial alternative 
 
 Day-one scaffold: Discover (trending), Search (Lighthouse full-text plus pasted `lbry://` / odysee.com links), and playback via the SDK's `get` → `streaming_url`. Library is a placeholder.
 
+## Screens
+
+Mock-ups from the design canvas ("Carrel mock screens"). Real screenshots will go in [`docs/screenshots/`](docs/screenshots/) as the app comes together.
+
+| Home · For you | Shorts | Not for me | Your taste |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/mocks/home-for-you.png" width="200" alt="Home screen with a featured video and recommendation rows"> | <img src="docs/mocks/shorts.png" width="200" alt="Full-screen Shorts clip with like, not for me, tip, comments and share"> | <img src="docs/mocks/shorts-not-for-me.png" width="200" alt="Not for me sheet: skip, less from channel, less of tag, hide channel"> | <img src="docs/mocks/your-taste.png" width="200" alt="Your taste screen with topic weights, channels and ranking controls"> |
+
 ## Getting started
 
 ```sh
