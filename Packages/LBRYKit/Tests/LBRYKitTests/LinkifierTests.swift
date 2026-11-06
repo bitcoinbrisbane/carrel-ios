@@ -4,7 +4,7 @@ import XCTest
 final class LinkifierTests: XCTestCase {
 
     /// Trimmed from a real description (Switched to Linux).
-    private let description = """
+    private let sample = """
     The latest Linux Mint update gives us new upcoming features.
     #linuxmint #linux
 
@@ -24,7 +24,7 @@ final class LinkifierTests: XCTestCase {
     }
 
     func testRealDescription() {
-        let links = found(description)
+        let links = found(sample)
         let byText = Dictionary(links.map { ($0.0, ($0.1, $0.2)) }, uniquingKeysWith: { a, _ in a })
 
         XCTAssertEqual(byText["https://blog.linuxmint.com/?p=5093"]?.1, .web)
