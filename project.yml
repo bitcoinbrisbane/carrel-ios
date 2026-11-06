@@ -25,6 +25,14 @@ targets:
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
+    # iCloud key-value storage, so the encrypted taste/library backup syncs between
+    # devices. Needs your Apple developer team for signing (DEVELOPMENT_TEAM), so it's
+    # opt-in: uncomment, set the team in Xcode, and run xcodegen. Without it, backups
+    # still work but stay on this device.
+    # entitlements:
+    #   path: Carrel/Carrel.entitlements
+    #   properties:
+    #     com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
     info:
       path: Carrel/Info.plist
       properties:

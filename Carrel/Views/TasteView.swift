@@ -5,6 +5,7 @@ import LBRYKit
 struct TasteView: View {
     @Environment(AppModel.self) private var model
     @State private var confirmReset = false
+    @State private var confirmRestore = false
 
     var body: some View {
         @Bindable var model = model
@@ -74,12 +75,41 @@ struct TasteView: View {
             }
 
             Section {
+                if model.wallet.isReady {
+                    LabeledContent("Last backed up") {
+                        if let date = model.lastBackup {
+                            Text(date, style: .relative) + Text(" ago")
+                        } else {
+                            Text("Not yet")
+                        }
+                    }
+                    Button("Back up now") { model.backupNow() }
+                    Button("Restore from iCloud") { confirmRestore = true }
+                } else {
+                    Text("Set up your wallet to back this up. It's encrypted with your recovery phrase.")
+                        .foregroundStyle(.secondary)
+                }
+                if let error = model.backupError {
+                    Text(error).font(.footnote).foregroundStyle(.orange)
+                }
+            } header: {
+                Text("iCloud backup")
+            } footer: {
+                Text("Your taste, follows and watch history, encrypted with a key from your wallet's recovery phrase. Apple stores it but can't read it; restoring the wallet on a new phone brings it back.")
+            }
+
+            Section {
                 Button("Reset my taste", role: .destructive) { confirmReset = true }
             }
         }
         .navigationTitle("Your taste")
         .confirmationDialog("Reset everything Carrel has learned?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) { model.taste.reset() }
+        }
+        .confirmationDialog("Restore from iCloud?", isPresented: $confirmRestore, titleVisibility: .visible) {
+            Button("Restore") { model.restoreBackup(replaceTaste: true) }
+        } message: {
+            Text("Your taste is replaced by the backed-up one. Follows and history from the backup are added to what's here.")
         }
     }
 

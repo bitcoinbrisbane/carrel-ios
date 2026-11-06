@@ -126,6 +126,11 @@ public struct TasteProfile: Codable, Equatable, Sendable {
         self.isPaused = paused
     }
 
+    /// Nothing learned yet (settings aside).
+    public var isEmpty: Bool {
+        topics.isEmpty && channels.isEmpty && liked.isEmpty && mutedTopics.isEmpty && mutedChannels.isEmpty
+    }
+
     // MARK: Queries used by feed building and the Your taste screen
 
     public func topTopics(_ n: Int) -> [(tag: String, weight: Double)] {

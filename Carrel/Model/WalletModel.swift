@@ -21,6 +21,8 @@ final class WalletModel {
     private(set) var hubName: String?
     private(set) var verifiedHeight: Int?
     var lastError: String?
+    /// Called once a wallet is open (created, restored or loaded).
+    var onReady: (() -> Void)?
 
     // Ethereum, from the same phrase (standard path, so MetaMask shows the same address).
     private(set) var ethereum: EthereumAccount?
@@ -83,6 +85,7 @@ final class WalletModel {
         self.hub = hub
         wallet = Wallet(account: account, backend: hub)
         phase = .ready
+        onReady?()
         await refresh()
     }
 

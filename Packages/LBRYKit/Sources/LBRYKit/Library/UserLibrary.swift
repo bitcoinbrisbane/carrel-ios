@@ -15,13 +15,17 @@ public struct UserLibrary: Codable, Equatable, Sendable {
     }
 
     public struct HistoryEntry: Codable, Equatable, Sendable, Identifiable {
-        public let claim: Claim
+        public private(set) var claim: Claim
         /// Seconds into the video where the viewer stopped.
         public var position: Double
         /// Length in seconds, from the player when known, else from the claim.
         public var duration: Double?
         public var lastWatched: Date
         public var id: String { claim.claimId }
+
+        mutating func replaceClaim(_ claim: Claim) {
+            self.claim = claim
+        }
 
         /// 0…1, or nil when the length isn't known.
         public var progress: Double? {
@@ -105,4 +109,26 @@ public struct UserLibrary: Codable, Equatable, Sendable {
     public mutating func clearHistory() {
         history.removeAll()
     }
+
+    mutating func replaceHistory(_ entries: [HistoryEntry]) {
+        history = Array(entries.prefix(Self.historyLimit))
+    }
+
+    /// Combine with a restored copy: follows are united, history keeps the most
+    /// recent entry per video, newest first.
+    public func merged(with other: UserLibrary) -> UserLibrary {
+        var out = self
+        for channel in other.following where !out.isFollowing(channel.claimId) {
+            out.following.append(channel)
+        }
+        var byID: [String: HistoryEntry] = [:]
+        for entry in history + other.history {
+            if let existing = byID[entry.id], existing.lastWatched >= entry.lastWatched { continue }
+            byID[entry.id] = entry
+        }
+        out.replaceHistory(byID.values.sorted { $0.lastWatched > $1.lastWatched })
+        return out
+    }
+
+    public var isEmpty: Bool { following.isEmpty && history.isEmpty }
 }

@@ -96,6 +96,12 @@ The Home tab is the "For you" mock made real. `HomeFeed` asks `claim_search` for
 
 Following and history live in `UserLibrary`, saved on the phone. The player saves your place every 10 seconds; videos between 5% and 95% watched show in Continue watching and resume where you stopped, and finishing a long video counts as a "watched to the end" taste signal.
 
+### Encrypted backup
+
+Taste, follows and watch history are backed up to iCloud key-value storage, encrypted with AES-256-GCM under a key derived (HKDF) from the wallet's recovery phrase, so Apple stores the blob but can't read it. Backups happen 20 seconds after the last change; restoring the wallet on a new phone restores them automatically, and Library › Your taste has "Back up now" and "Restore from iCloud". History drops video descriptions (and the oldest entries if needed) to stay under the 1 MB limit.
+
+To sync between devices, enable the iCloud key-value storage capability: uncomment the `entitlements` block in `project.yml`, set your team in Xcode, and run `xcodegen`.
+
 ## Wallet
 
 Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).

@@ -33,7 +33,7 @@ final class AppModel {
 
     /// Learned on this device only; saved after every change.
     var taste: TasteProfile = TasteStore.load() {
-        didSet { TasteStore.save(taste) }
+        didSet { TasteStore.save(taste); scheduleBackup() }
     }
 
     func record(_ signal: TasteProfile.Signal, on claim: Claim) {
@@ -42,7 +42,67 @@ final class AppModel {
 
     /// Follows and watch history, on this device only.
     var library: UserLibrary = LibraryStore.load() {
-        didSet { LibraryStore.save(library) }
+        didSet { LibraryStore.save(library); scheduleBackup() }
+    }
+
+    init() {
+        // A wallet opened on a fresh phone brings its taste and library back from iCloud.
+        wallet.onReady = { [weak self] in self?.restoreBackupIfFresh() }
+    }
+
+    // MARK: Encrypted backup (taste + library)
+
+    private(set) var lastBackup: Date? = CloudBackupStore.lastSaved
+    private(set) var backupError: String?
+    private var backupTask: Task<Void, Never>?
+
+    /// Back up a little after the last change, so a burst of changes is one write.
+    func scheduleBackup() {
+        backupTask?.cancel()
+        backupTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(20))
+            guard !Task.isCancelled else { return }
+            self?.backupNow()
+        }
+    }
+
+    func backupNow() {
+        guard wallet.isReady, let phrase = try? wallet.recoveryPhrase() else { return }
+        do {
+            let blob = try EncryptedBackup.seal(BackupPayload(taste: taste, library: library), phrase: phrase)
+            let now = Date()
+            CloudBackupStore.save(blob, at: now)
+            lastBackup = now
+            backupError = nil
+        } catch {
+            backupError = "Couldn't back up: \(error.localizedDescription)"
+        }
+    }
+
+    /// Restore. `replaceTaste` swaps in the backed-up taste; follows and history are always combined.
+    @discardableResult
+    func restoreBackup(replaceTaste: Bool) -> Bool {
+        guard let phrase = try? wallet.recoveryPhrase(), let blob = CloudBackupStore.load() else {
+            backupError = "No backup found for this wallet."
+            return false
+        }
+        do {
+            let payload = try EncryptedBackup.open(blob, phrase: phrase)
+            if replaceTaste || taste.isEmpty { taste = payload.taste }
+            library = library.merged(with: payload.library)
+            backupError = nil
+            return true
+        } catch EncryptedBackup.Error.cannotDecrypt {
+            backupError = "The iCloud backup belongs to a different recovery phrase."
+        } catch {
+            backupError = "Couldn't restore: \(error.localizedDescription)"
+        }
+        return false
+    }
+
+    private func restoreBackupIfFresh() {
+        guard taste.isEmpty, library.isEmpty, CloudBackupStore.load() != nil else { return }
+        restoreBackup(replaceTaste: true)
     }
 
     func recordProgress(_ claim: Claim, position: Double, duration: Double?) {

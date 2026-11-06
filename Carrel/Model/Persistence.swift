@@ -51,6 +51,28 @@ enum LibraryStore {
     }
 }
 
+/// The encrypted taste + library backup in iCloud key-value storage. The blob is
+/// sealed with a key from the wallet phrase (EncryptedBackup), so Apple can't read it.
+/// Syncs only when the app has the iCloud key-value storage capability (see README);
+/// without it, the store keeps the value on this device only.
+enum CloudBackupStore {
+    static let key = "carrel.backup.v1"
+    static var store: NSUbiquitousKeyValueStore { .default }
+
+    static func save(_ blob: Data, at date: Date = Date()) {
+        store.set(blob, forKey: key)
+        store.set(date, forKey: key + ".date")
+        store.synchronize()
+    }
+
+    static func load() -> Data? {
+        store.synchronize()
+        return store.data(forKey: key)
+    }
+
+    static var lastSaved: Date? { store.object(forKey: key + ".date") as? Date }
+}
+
 /// The CarrelChain header window (last 100 validated headers), so launches sync
 /// only what's new instead of starting from the checkpoint each time.
 enum ChainStore {
