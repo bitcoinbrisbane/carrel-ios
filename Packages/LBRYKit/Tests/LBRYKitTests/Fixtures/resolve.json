@@ -1,0 +1,36 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "lbry://@carrel#c/hello#a": {
+      "claim_id": "a1b2c3",
+      "name": "hello",
+      "canonical_url": "lbry://@carrel#c/hello#a",
+      "permanent_url": "lbry://hello#a1b2c3",
+      "value_type": "stream",
+      "timestamp": 1762380000,
+      "signing_channel": {
+        "claim_id": "c0ffee",
+        "name": "@carrel",
+        "canonical_url": "lbry://@carrel#c",
+        "value": {
+          "title": "Carrel",
+          "thumbnail": { "url": "https://example.com/channel.jpg" }
+        }
+      },
+      "value": {
+        "title": "Hello from Carrel",
+        "description": "Test fixture shaped like an lbrynet resolve response.",
+        "thumbnail": { "url": "https://example.com/thumb.jpg" },
+        "tags": ["demo", "bitcoin"],
+        "release_time": "1762380000",
+        "stream_type": "video",
+        "video": { "duration": 125, "width": 1920, "height": 1080 },
+        "source": { "sd_hash": "deadbeef", "media_type": "video/mp4" }
+      }
+    },
+    "lbry://missing": {
+      "error": { "name": "NOT_FOUND", "text": "Could not find claim at \"lbry://missing\"." }
+    }
+  }
+}

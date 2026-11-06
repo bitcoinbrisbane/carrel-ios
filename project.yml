@@ -1,0 +1,36 @@
+# Generate the Xcode project with XcodeGen:  brew install xcodegen && xcodegen
+name: Carrel
+options:
+  bundleIdPrefix: au.com.bitcoinbrisbane
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  LBRYKit:
+    path: Packages/LBRYKit
+
+targets:
+  Carrel:
+    type: application
+    platform: iOS
+    sources: [Carrel]
+    dependencies:
+      - package: LBRYKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: au.com.bitcoinbrisbane.carrel
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.10"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+    info:
+      path: Carrel/Info.plist
+      properties:
+        CFBundleDisplayName: Carrel
+        UILaunchScreen: {}
+        UIBackgroundModes: [audio]
+        CFBundleURLTypes:
+          - CFBundleURLName: au.com.bitcoinbrisbane.carrel.lbry
+            CFBundleURLSchemes: [lbry]
