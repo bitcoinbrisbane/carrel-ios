@@ -2,7 +2,7 @@ import Foundation
 
 /// A claim as returned by `resolve` / `claim_search`. Only the fields the app
 /// uses are modelled; everything else in the SDK response is ignored.
-public struct Claim: Decodable, Identifiable, Hashable, Sendable {
+public struct Claim: Codable, Identifiable, Hashable, Sendable {
     public let claimId: String
     public let name: String
     public let canonicalURL: String?
@@ -44,7 +44,7 @@ public struct Claim: Decodable, Identifiable, Hashable, Sendable {
     }
 }
 
-public struct ChannelRef: Decodable, Hashable, Sendable {
+public struct ChannelRef: Codable, Hashable, Sendable {
     public let claimId: String
     public let name: String
     public let canonicalURL: String?
@@ -52,6 +52,13 @@ public struct ChannelRef: Decodable, Hashable, Sendable {
 
     public var title: String { value?.title ?? name }
     public var thumbnailURL: URL? { value?.thumbnail?.url.flatMap(URL.init(string:)) }
+
+    public init(claimId: String, name: String, canonicalURL: String?, value: ClaimValue?) {
+        self.claimId = claimId
+        self.name = name
+        self.canonicalURL = canonicalURL
+        self.value = value
+    }
 
     enum CodingKeys: String, CodingKey {
         case claimId = "claim_id"
@@ -61,7 +68,7 @@ public struct ChannelRef: Decodable, Hashable, Sendable {
     }
 }
 
-public struct ClaimValue: Decodable, Hashable, Sendable {
+public struct ClaimValue: Codable, Hashable, Sendable {
     public let title: String?
     public let description: String?
     public let thumbnail: Media?
@@ -73,9 +80,9 @@ public struct ClaimValue: Decodable, Hashable, Sendable {
     public let audio: AV?
     public let source: Source?
 
-    public struct Media: Decodable, Hashable, Sendable { public let url: String? }
-    public struct AV: Decodable, Hashable, Sendable { public let duration: Int? }
-    public struct Source: Decodable, Hashable, Sendable {
+    public struct Media: Codable, Hashable, Sendable { public let url: String? }
+    public struct AV: Codable, Hashable, Sendable { public let duration: Int? }
+    public struct Source: Codable, Hashable, Sendable {
         public let sdHash: String?
         public let mediaType: String?
         enum CodingKeys: String, CodingKey {

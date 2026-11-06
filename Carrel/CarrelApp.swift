@@ -35,6 +35,22 @@ final class AppModel {
         taste.record(signal, on: claim)
     }
 
+    /// Follows and watch history, on this device only.
+    var library: UserLibrary = LibraryStore.load() {
+        didSet { LibraryStore.save(library) }
+    }
+
+    func recordProgress(_ claim: Claim, position: Double, duration: Double?) {
+        guard position.isFinite, position >= 0 else { return }
+        let length = duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        library.recordProgress(claim, position: position, duration: length)
+        // Finishing a long video is a strong taste signal too.
+        // (Recording marks it seen, so this fires once per video.)
+        if let length, position / length >= 0.9, !taste.hasSeen(claim.claimId) {
+            record(.watchedToEnd, on: claim)
+        }
+    }
+
     /// Handle `lbry://` and odysee.com links opened from outside the app.
     func open(_ link: String) {
         guard let uri = LBRYURL.normalise(link) else {
@@ -58,8 +74,8 @@ struct RootView: View {
     var body: some View {
         @Bindable var model = model
         TabView {
-            NavigationStack { DiscoverView() }
-                .tabItem { Label("Discover", systemImage: "sparkles.tv") }
+            NavigationStack { HomeView() }
+                .tabItem { Label("Home", systemImage: "house") }
             ShortsView()
                 .tabItem { Label("Shorts", systemImage: "play.rectangle.on.rectangle") }
             NavigationStack { SearchView() }

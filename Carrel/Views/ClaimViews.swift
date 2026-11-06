@@ -43,41 +43,47 @@ struct ClaimDetailView: View {
     @Environment(AppModel.self) private var model
     let claim: Claim
     @State private var player: AVPlayer?
+    @State private var timeObserver: Any?
     @State private var error: String?
     @State private var showTip = false
 
     var body: some View {
+        if isChannel {
+            ChannelView(channelID: claim.claimId, name: claim.name, channelClaim: claim)
+        } else {
+            videoPage
+        }
+    }
+
+    private var videoPage: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if isChannel {
-                    Color.secondary.opacity(0.2)
-                        .frame(height: 140)
-                        .overlay {
-                            AsyncImage(url: claim.value?.cover?.url.flatMap(URL.init(string:))) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Color.clear
-                            }
-                        }
-                        .clipped()
-                } else {
-                    ZStack {
-                        if let player {
-                            VideoPlayer(player: player)
-                        } else if let error {
-                            ContentUnavailableView("Can't play this", systemImage: "play.slash", description: Text(error))
-                        } else {
-                            ProgressView()
-                        }
+                ZStack {
+                    if let player {
+                        VideoPlayer(player: player)
+                    } else if let error {
+                        ContentUnavailableView("Can't play this", systemImage: "play.slash", description: Text(error))
+                    } else {
+                        ProgressView()
                     }
-                    .aspectRatio(16 / 9, contentMode: .fit)
-                    .background(.black)
                 }
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .background(.black)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(claim.title).font(.title3.weight(.semibold))
                     if let channel = claim.signingChannel {
-                        Label(channel.title, systemImage: "person.crop.circle").font(.subheadline)
+                        ChannelRow(channel: channel)
+                    }
+                    HStack(spacing: 12) {
+                        if claim.address != nil {
+                            Button { showTip = true } label: { Label("Tip", systemImage: "l.circle") }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color.carrelAccent)
+                                .foregroundStyle(.black)
+                        }
+                        ShareLink(item: claim.lbryURL) { Label("Share", systemImage: "square.and.arrow.up") }
+                            .buttonStyle(.bordered)
                     }
                     if let description = claim.value?.description, !description.isEmpty {
                         // URLs, @handles and r/subs become links (see Linkifier).
@@ -86,15 +92,6 @@ struct ClaimDetailView: View {
                             .foregroundStyle(.secondary)
                             .tint(Color.carrelAccent)
                             .textSelection(.enabled)
-                    }
-                    HStack(spacing: 12) {
-                        if !isChannel, claim.address != nil {
-                            Button { showTip = true } label: { Label("Tip", systemImage: "l.circle") }
-                                .buttonStyle(.borderedProminent)
-                                .tint(Color.carrelAccent)
-                                .foregroundStyle(.black)
-                        }
-                        ShareLink(item: claim.lbryURL) { Label("Share lbry:// link", systemImage: "square.and.arrow.up") }
                     }
                 }
                 .padding(.horizontal)
@@ -116,20 +113,104 @@ struct ClaimDetailView: View {
                 .presentationDetents([.medium, .large])
         }
         .task { await load() }
-        .onDisappear { player?.pause() }
+        .onDisappear { stop() }
     }
 
     private var isChannel: Bool { claim.valueType == "channel" }
 
     private func load() async {
-        guard player == nil, !isChannel else { return }
+        guard player == nil else { return }
         do {
             let url = try await model.client.streamingURL(for: claim.lbryURL)
             let p = AVPlayer(url: url)
+            // Pick up where you left off.
+            if let resume = model.library.resumePosition(for: claim.claimId) {
+                _ = await p.seek(to: CMTime(seconds: resume, preferredTimescale: 600))
+            }
             player = p
             p.play()
+            // Save progress every 10 s, for Continue watching.
+            let claim = self.claim
+            let model = self.model
+            timeObserver = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 10, preferredTimescale: 600), queue: .main) { [weak p] time in
+                MainActor.assumeIsolated {
+                    model.recordProgress(claim, position: time.seconds, duration: p?.currentItem?.duration.seconds)
+                }
+            }
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    private func stop() {
+        guard let player else { return }
+        player.pause()
+        let position = player.currentTime().seconds
+        if position.isFinite, position > 0 {
+            model.recordProgress(claim, position: position, duration: player.currentItem?.duration.seconds)
+        }
+        if let timeObserver { player.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+    }
+}
+
+/// Channel name, avatar and a Follow button; tapping the name opens the channel.
+struct ChannelRow: View {
+    @Environment(AppModel.self) private var model
+    let channel: ChannelRef
+
+    var body: some View {
+        HStack(spacing: 10) {
+            NavigationLink {
+                ChannelView(channelID: channel.claimId, name: channel.name)
+            } label: {
+                HStack(spacing: 10) {
+                    ChannelAvatar(url: channel.thumbnailURL, name: channel.name, size: 36)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(channel.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                        Text(channel.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            FollowButton(channel: channel)
+        }
+    }
+}
+
+struct FollowButton: View {
+    @Environment(AppModel.self) private var model
+    let channel: ChannelRef
+
+    var body: some View {
+        let following = model.library.isFollowing(channel.claimId)
+        Button(following ? "Following" : "Follow") {
+            if following { model.library.unfollow(channel.claimId) } else { model.library.follow(channel) }
+        }
+        .buttonStyle(.bordered)
+        .tint(following ? .secondary : Color.carrelAccent)
+        .accessibilityAddTraits(following ? .isSelected : [])
+    }
+}
+
+struct ChannelAvatar: View {
+    let url: URL?
+    let name: String
+    var size: CGFloat = 40
+
+    var body: some View {
+        Circle()
+            .fill(Color.secondary.opacity(0.25))
+            .overlay {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Text(String(name.dropFirst().prefix(1)).uppercased()).font(.system(size: size * 0.4, weight: .semibold))
+                }
+            }
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .accessibilityHidden(true)
     }
 }

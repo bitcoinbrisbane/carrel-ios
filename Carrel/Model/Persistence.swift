@@ -33,6 +33,24 @@ enum TasteStore {
     }
 }
 
+/// Follows and watch history.
+enum LibraryStore {
+    static var url: URL {
+        TasteStore.url.deletingLastPathComponent().appendingPathComponent("library.json")
+    }
+
+    static func load() -> UserLibrary {
+        guard let data = try? Data(contentsOf: url),
+              let library = try? JSONDecoder().decode(UserLibrary.self, from: data) else { return UserLibrary() }
+        return library
+    }
+
+    static func save(_ library: UserLibrary) {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(library).write(to: url, options: .atomic)
+    }
+}
+
 /// The CarrelChain header window (last 100 validated headers), so launches sync
 /// only what's new instead of starting from the checkpoint each time.
 enum ChainStore {

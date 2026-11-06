@@ -38,13 +38,14 @@ cd Packages/LBRYKit && swift test
 Carrel/                 SwiftUI app (iOS 17+)
   CarrelApp.swift       App entry, AppModel, tabs, deep-link handling
   Model/                Taste persistence, streaming-URL prefetch cache
-  Views/                Discover, Shorts, Search, Library, Your taste, claim row + detail/player
+  Views/                Home (For you), Shorts, Search, Library, Wallet, channel page, video page, tip sheet
 Packages/LBRYKit/       Pure-Swift LBRY client
   LBRYClient.swift      JSON-RPC client: resolve, claim_search, get, Lighthouse search
   Models.swift          Claim, ChannelRef, ClaimValue, Page, ClaimSearchParams
   LBRYURL.swift         Normalise lbry:// and odysee.com links
   ContentFilter.swift   On-device tag/channel/claim filter (App Store Guideline 1.2)
-  Recommend/            TasteProfile (signals → weights), FeedRanker (scoring + exploration), ShortsFeed
+  Recommend/            TasteProfile (signals → weights), FeedRanker (scoring + exploration), ShortsFeed, HomeFeed
+  Library/              UserLibrary: follows, watch history, Continue watching, resume points
   Chain/                CarrelChain: headers, LBRY PoW, retarget, rolling window, hub client, sync
   Wallet/               Phrases, BIP32, addresses, transactions, signing, scan, iCloud Keychain vault
   Text/                 Linkifier for descriptions (URLs, X, Reddit, LBRY channels)
@@ -88,6 +89,12 @@ score = 1.0·topicMatch + 0.8·channelAffinity + 0.4·freshness
 
 The mock screens are on the "Carrel mock screens" design canvas.
 
+## Home and Library
+
+The Home tab is the "For you" mock made real. `HomeFeed` asks `claim_search` for up to four candidate sets (trending, channels you follow, your top channel, your top topic; videos over 3 minutes, since Shorts has the rest), then ranks everything on the phone with the same `FeedRanker` as Shorts. The best match becomes the featured video (with its "% match" when it's 70% or more), and each video appears in at most one row. Chips switch to Following, or to your top topics.
+
+Following and history live in `UserLibrary`, saved on the phone. The player saves your place every 10 seconds; videos between 5% and 95% watched show in Continue watching and resume where you stopped, and finishing a long video counts as a "watched to the end" taste signal.
+
 ## Wallet
 
 Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
@@ -108,14 +115,15 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 
 ## Roadmap
 
-1. Browse, search, channels, playback *(scaffolded)*
-2. Library: local subscriptions, history, downloads, PiP, background audio
+1. Browse, search, channels, playback *(built)*
+2. Library: follows, watch history, Continue watching and resume *(built)*; downloads, PiP, background audio next
 3. **Shorts-style feed** *(built)* — full-screen vertical clips ≤3 min, swipe for more, like / not for me, next two prefetched
-4. **"For you" rows** — Netflix-style rails on the Discover tab, reusing the same ranker
+4. **"For you" home** *(built)* — chips, a featured video with "% match", and rows: Continue watching, New from channels you follow, Because you liked @channel, More #topic, Trending, Fresh on LBRY
 
 5. CarrelChain + wallet: checkpoint sync, keys, scan, tip/support/send *(core built)*; screens next
 6. `carrel-node`: own lbrynet, hub, seeding node, comment server, moderation list
 7. Publishing from the phone
+8. **Wrapped LBC (wLBC) on Ethereum** *(not urgent)* — show wLBC alongside LBC and wrap/unwrap through [lbc.exchange](https://lbc.exchange) (contract `0xB0F2C4f8b7c0f088f7844947EcBf1220bFCa08C1`), so tips can come from Ethereum users too
 
 ## App Store notes
 
