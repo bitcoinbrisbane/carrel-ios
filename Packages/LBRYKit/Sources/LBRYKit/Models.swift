@@ -112,6 +112,8 @@ public struct ClaimSearchParams: Encodable, Sendable {
     public var notTags: [String]?
     public var orderBy: [String]? = ["trending_group", "trending_mixed"]
     public var hasSource: Bool? = true
+    /// Duration filter in seconds with an optional operator, e.g. "<=180".
+    public var duration: String?
     public var page: Int = 1
     public var pageSize: Int = 20
 
@@ -140,6 +142,7 @@ public struct ClaimSearchParams: Encodable, Sendable {
         case notTags = "not_tags"
         case orderBy = "order_by"
         case hasSource = "has_source"
+        case duration
         case page
         case pageSize = "page_size"
     }
@@ -153,6 +156,7 @@ public struct ClaimSearchParams: Encodable, Sendable {
         try c.encodeIfPresent(notTags, forKey: .notTags)
         try c.encodeIfPresent(orderBy, forKey: .orderBy)
         try c.encodeIfPresent(hasSource, forKey: .hasSource)
+        try c.encodeIfPresent(duration, forKey: .duration)
         try c.encode(page, forKey: .page)
         try c.encode(pageSize, forKey: .pageSize)
     }

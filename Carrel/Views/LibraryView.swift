@@ -1,13 +1,26 @@
 import SwiftUI
 
-/// Placeholder for phase 1b: local subscriptions, watch history and downloads.
+/// Library: personal, on-device things. Subscriptions, history and downloads come next.
 struct LibraryView: View {
     var body: some View {
-        ContentUnavailableView(
-            "Your library",
-            systemImage: "books.vertical",
-            description: Text("Subscriptions, history and downloads live here. They stay on this device — no account needed.")
-        )
+        List {
+            Section {
+                NavigationLink {
+                    TasteView()
+                } label: {
+                    Label("Your taste", systemImage: "slider.horizontal.3")
+                }
+            } footer: {
+                Text("What Carrel has learned from your Shorts. It stays on this device.")
+            }
+
+            Section("Coming soon") {
+                Label("Subscriptions", systemImage: "person.2")
+                Label("History", systemImage: "clock")
+                Label("Downloads", systemImage: "arrow.down.circle")
+            }
+            .foregroundStyle(.secondary)
+        }
         .navigationTitle("Library")
     }
 }

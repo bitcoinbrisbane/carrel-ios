@@ -29,12 +29,14 @@ cd Packages/LBRYKit && swift test
 ```
 Carrel/                 SwiftUI app (iOS 17+)
   CarrelApp.swift       App entry, AppModel, tabs, deep-link handling
-  Views/                Discover, Search, Library, claim row + detail/player
+  Model/                Taste persistence, streaming-URL prefetch cache
+  Views/                Discover, Shorts, Search, Library, Your taste, claim row + detail/player
 Packages/LBRYKit/       Pure-Swift LBRY client
   LBRYClient.swift      JSON-RPC client: resolve, claim_search, get, Lighthouse search
   Models.swift          Claim, ChannelRef, ClaimValue, Page, ClaimSearchParams
   LBRYURL.swift         Normalise lbry:// and odysee.com links
   ContentFilter.swift   On-device tag/channel/claim filter (App Store Guideline 1.2)
+  Recommend/            TasteProfile (signals → weights), FeedRanker (scoring + exploration), ShortsFeed
   Chain/                CarrelChain: headers, LBRY PoW, retarget, rolling window, hub client, sync
 scripts/
   make_checkpoint.py    Generates the shipped mainnet checkpoint from a live hub
@@ -61,6 +63,21 @@ Things that look like "LBRY" but are really Odysee's own servers, and how we han
 | Comments, reactions, view counts | Odysee comment server / API (read-only) | Own comment server, or channel-signed comments |
 | Accounts / sync | Not used | Wallet import (seed or keys) instead of Odysee login |
 
+## Recommendations (on device)
+
+Shorts is ranked by `FeedRanker` against a `TasteProfile` that never leaves the phone:
+
+```
+score = 1.0·topicMatch + 0.8·channelAffinity + 0.4·freshness
+```
+
+- **Signals:** like +0.25 topics / +0.30 channel, watched to the end +0.10, skipped within 2 s −0.06, "not interested" −0.15 / −0.10. Explicit "less of" choices push −0.6; "hide channel" mutes it. Weights are clamped to ±1, and a topic push is spread over the clip's tags.
+- **Exploration:** every *n*-th slot (default 10%, "Surprise me" slider 0–40%) is a random clip the viewer has no opinion on yet, so the feed doesn't narrow.
+- **Candidates:** up to three `claim_search` queries per page (trending, top liked channels, top topics), all filtered to `duration <=180`. Only these broad interests reach the server; ranking and the profile stay local.
+- **Your taste** (Library tab) shows topics and channels with their weights, lets you hide or unmute them, change the surprise share, pause learning or reset.
+
+The mock screens are on the "Carrel mock screens" design canvas.
+
 ## Wallet: an embedded light chain ("Breez for LBRY")
 
 The idea is a wallet that feels like Breez: open the app and you already have a working, self-custodial wallet backed by a tiny chain of its own on the device — no seed-phrase ceremony up front, no server holding keys.
@@ -82,8 +99,9 @@ What the wallet does: tip and support creators, receive LBC, and bridge to wLBC 
 
 1. Browse, search, channels, playback *(scaffolded)*
 2. Library: local subscriptions, history, downloads, PiP, background audio
-3. **Shorts-style feed** — full-screen vertical videos, swipe for fresh content, prefetch the next few
-4. **"For you" rows** — Netflix-style rails driven by on-device pattern matching (tags, channels, watch time); nothing leaves the phone
+3. **Shorts-style feed** *(built)* — full-screen vertical clips ≤3 min, swipe for more, like / not for me, next two prefetched
+4. **"For you" rows** — Netflix-style rails on the Discover tab, reusing the same ranker
+
 5. CarrelChain + wallet: checkpoint sync *(started)*, receive, tip, support, wallet import
 6. `carrel-node`: own lbrynet, hub, seeding node, comment server, moderation list
 7. Publishing from the phone

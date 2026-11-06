@@ -14,14 +14,25 @@ struct CarrelApp: App {
     }
 }
 
-/// App-wide state. One LBRY client, one content filter, and any deep link to show.
+/// App-wide state. One LBRY client, one content filter, the on-device taste
+/// profile, and any deep link to show.
 @Observable
 @MainActor
 final class AppModel {
     let client = LBRYClient()
+    let streams = StreamURLCache()
     var filter = ContentFilter()
     var deepLinkClaim: Claim?
     var deepLinkError: String?
+
+    /// Learned on this device only; saved after every change.
+    var taste: TasteProfile = TasteStore.load() {
+        didSet { TasteStore.save(taste) }
+    }
+
+    func record(_ signal: TasteProfile.Signal, on claim: Claim) {
+        taste.record(signal, on: claim)
+    }
 
     /// Handle `lbry://` and odysee.com links opened from outside the app.
     func open(_ link: String) {
@@ -48,6 +59,8 @@ struct RootView: View {
         TabView {
             NavigationStack { DiscoverView() }
                 .tabItem { Label("Discover", systemImage: "sparkles.tv") }
+            ShortsView()
+                .tabItem { Label("Shorts", systemImage: "play.rectangle.on.rectangle") }
             NavigationStack { SearchView() }
                 .tabItem { Label("Search", systemImage: "magnifyingglass") }
             NavigationStack { LibraryView() }
