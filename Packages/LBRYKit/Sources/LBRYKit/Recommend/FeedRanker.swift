@@ -8,6 +8,12 @@ public struct RankedClaim: Identifiable, Hashable, Sendable {
 
     public var id: String { claim.claimId }
 
+    public init(claim: Claim, score: Double, reason: Reason) {
+        self.claim = claim
+        self.score = score
+        self.reason = reason
+    }
+
     public enum Reason: Hashable, Sendable {
         case topic(String)        // normalised tag
         case channel(String)      // @name
