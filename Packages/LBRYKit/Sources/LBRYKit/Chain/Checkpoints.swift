@@ -13,7 +13,7 @@ extension Checkpoint {
 
     /// Recent mainnet checkpoint shipped with the app. Regenerate before each release:
     ///
-    ///     python3 scripts/make_checkpoint.py > Packages/LBRYKit/Sources/LBRYKit/Chain/Checkpoint+Mainnet.swift
+    ///     python3 scripts/make_checkpoint.py
     ///
     /// Until one has been generated, `mainnet` is nil and this falls back to genesis.
     public static var latest: Checkpoint { mainnet ?? genesis }
