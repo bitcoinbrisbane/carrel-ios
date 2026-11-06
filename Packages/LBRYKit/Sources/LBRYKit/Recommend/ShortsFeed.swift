@@ -12,6 +12,14 @@ public struct ShortsFeed: Sendable {
 
     public init() {}
 
+    /// The server filter (`duration <=180`) is honoured by the hubs, but a video with
+    /// no duration in its metadata is indexed as 0 and slips through, so check here too:
+    /// a known length of 1–180 seconds.
+    public func isShort(_ claim: Claim) -> Bool {
+        guard let seconds = claim.duration else { return false }
+        return (1...maxDuration).contains(seconds)
+    }
+
     /// Candidate queries for one page of feed.
     public func queries(for taste: TasteProfile, page: Int, blockedTags: [String]) -> [ClaimSearchParams] {
         var base = ClaimSearchParams()
@@ -65,7 +73,7 @@ public struct ShortsFeed: Sendable {
         var seen = Set<String>()
         return filter.apply(claims)
             .filter { claim in
-                guard seen.insert(claim.claimId).inserted else { return false }
+                guard isShort(claim), seen.insert(claim.claimId).inserted else { return false }
                 if let channel = claim.signingChannel, taste.mutedChannels.contains(channel.claimId) { return false }
                 return !TasteProfile.tags(of: claim).contains { taste.mutedTopics.contains($0) }
             }
@@ -105,6 +113,6 @@ public struct ShortsFeed: Sendable {
             }
         }
         if candidates.isEmpty, let lastError { throw lastError }
-        return ranker.rank(filter.apply(candidates), taste: taste, now: now)
+        return ranker.rank(filter.apply(candidates).filter(isShort), taste: taste, now: now)
     }
 }

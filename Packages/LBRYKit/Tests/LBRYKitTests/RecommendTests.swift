@@ -8,7 +8,8 @@ private func clip(
     channel: String = "@chan",
     channelID: String? = nil,
     tags: [String] = [],
-    ageDays: Double = 1
+    ageDays: Double = 1,
+    seconds: Int? = 30
 ) -> Claim {
     let released = String(Int(now.timeIntervalSince1970 - ageDays * 86_400))
     return Claim(
@@ -21,7 +22,7 @@ private func clip(
         signingChannel: ChannelRef(claimId: channelID ?? "ch-" + channel, name: channel, canonicalURL: nil, value: nil),
         value: ClaimValue(
             title: id, description: nil, thumbnail: nil, cover: nil, tags: tags,
-            releaseTime: released, streamType: "video", video: .init(duration: 30), audio: nil, source: nil
+            releaseTime: released, streamType: "video", video: seconds.map { .init(duration: $0) }, audio: nil, source: nil
         )
     )
 }
@@ -225,5 +226,38 @@ final class ShortsFeedTests: XCTestCase {
         XCTAssertEqual(timeline.map(\.id), ["new", "old"])
         XCTAssertEqual(timeline[0].reason, .following("@sail"))
         XCTAssertEqual(timeline[0].reason.text, "You follow @sail")
+    }
+}
+
+/// Issue #17: the hubs honour `duration` (it's a range field in the hub's search, and
+/// Odysee's own Shorts query is `duration: "<=180"`), but a video with no length in its
+/// metadata is indexed as 0, so the feeds also check lengths on the phone.
+final class DurationSplitTests: XCTestCase {
+
+    func testShortsKeepsOnlyKnownShortLengths() {
+        let feed = ShortsFeed()
+        XCTAssertTrue(feed.isShort(clip("a", seconds: 1)))
+        XCTAssertTrue(feed.isShort(clip("b", seconds: 180)))
+        XCTAssertFalse(feed.isShort(clip("c", seconds: 181)))
+        XCTAssertFalse(feed.isShort(clip("d", seconds: 0)), "no length in metadata")
+        XCTAssertFalse(feed.isShort(clip("e", seconds: nil)))
+    }
+
+    func testFollowingTimelineDropsLongAndUnknown() {
+        let claims = [clip("short", seconds: 45), clip("long", seconds: 900), clip("unknown", seconds: 0)]
+        let ids = ShortsFeed().followingTimeline(claims, taste: TasteProfile(), filter: ContentFilter()).map(\.claim.claimId)
+        XCTAssertEqual(ids, ["short"])
+    }
+
+    func testHomeKeepsOnlyLongVideos() {
+        let feed = HomeFeed()
+        XCTAssertTrue(feed.isLong(clip("a", seconds: 181)))
+        XCTAssertFalse(feed.isLong(clip("b", seconds: 180)))
+        XCTAssertFalse(feed.isLong(clip("c", seconds: nil)))
+        let page = feed.page(results: [.trending: [clip("long", seconds: 1200), clip("short", seconds: 40)]],
+                             taste: TasteProfile(), library: UserLibrary(), now: now)
+        let shown = ([page.featured].compactMap { $0 } + page.rows.flatMap(\.items)).map(\.claim.claimId)
+        XCTAssertTrue(shown.contains("long"))
+        XCTAssertFalse(shown.contains("short"))
     }
 }

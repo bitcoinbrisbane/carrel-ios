@@ -125,11 +125,11 @@ struct HomeView: View {
                 list = []
                 guard !library.following.isEmpty else { return }
                 let params = feed.chipQuery(.following, taste: taste, library: library, blockedTags: blocked)
-                list = filter.apply(try await client.claimSearch(params).items)
+                list = filter.apply(try await client.claimSearch(params).items).filter(feed.isLong)
                     .map { RankedClaim(claim: $0, score: 0, reason: .trending) }
             case .topic(let tag):
                 let params = feed.chipQuery(.topic(tag), taste: taste, library: library, blockedTags: blocked)
-                list = feed.ranker.rank(filter.apply(try await client.claimSearch(params).items), taste: taste)
+                list = feed.ranker.rank(filter.apply(try await client.claimSearch(params).items).filter(feed.isLong), taste: taste)
             }
             error = nil
         } catch {

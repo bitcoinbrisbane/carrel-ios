@@ -85,7 +85,7 @@ score = 1.0·topicMatch + 0.8·channelAffinity + 0.4·freshness
 
 - **Signals:** like +0.25 topics / +0.30 channel, watched to the end +0.10, skipped within 2 s −0.06, "not interested" −0.15 / −0.10. Explicit "less of" choices push −0.6; "hide channel" mutes it. Weights are clamped to ±1, and a topic push is spread over the clip's tags.
 - **Exploration:** every *n*-th slot (default 10%, "Surprise me" slider 0–40%) is a random clip the viewer has no opinion on yet, so the feed doesn't narrow.
-- **Candidates:** up to three `claim_search` queries per page (trending, top liked channels, top topics), all filtered to `duration <=180`. Only these broad interests reach the server; ranking and the profile stay local.
+- **Candidates:** up to three `claim_search` queries per page (trending, top liked channels, top topics), all filtered to `duration <=180` (the same cutoff and filter Odysee's Shorts uses). Videos whose metadata has no length are indexed as 0, so the phone also requires a known length of 1–180 s; Home keeps only lengths over 180 s. Only these broad interests reach the server; ranking and the profile stay local.
 - **Your taste** (Library tab) shows topics and channels with their weights, lets you hide or unmute them, change the surprise share, pause learning or reset.
 
 The mock screens are on the "Carrel mock screens" design canvas.

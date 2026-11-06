@@ -48,6 +48,12 @@ public struct HomeFeed: Sendable {
 
     public init() {}
 
+    /// Home's side of the Shorts split: a known length over 3 minutes. (The server's
+    /// `duration >=181` already excludes unknown lengths; this keeps chips and rows honest.)
+    public func isLong(_ claim: Claim) -> Bool {
+        (claim.duration ?? 0) >= minDuration
+    }
+
     // MARK: Queries
 
     public func queries(taste: TasteProfile, library: UserLibrary, blockedTags: [String]) -> [Query] {
@@ -132,7 +138,7 @@ public struct HomeFeed: Sendable {
 
         func ranked(_ claims: [Claim]) -> [RankedClaim] {
             // Skip videos already watched here (Continue watching covers unfinished ones).
-            let candidates = filter.apply(claims).filter { !watched.contains($0.claimId) }
+            let candidates = filter.apply(claims).filter { isLong($0) && !watched.contains($0.claimId) }
             var rng = SeededGenerator(seed: 7)
             return ranker.rank(candidates, taste: homeTaste, now: now, using: &rng)
         }
