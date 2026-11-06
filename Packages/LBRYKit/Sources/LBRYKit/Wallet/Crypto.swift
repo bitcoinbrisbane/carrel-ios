@@ -121,17 +121,42 @@ public enum Secp256k1 {
         return secp256k1_ecdsa_verify(ctx, &sig, digest, &pub) == 1
     }
 
+    /// 65-byte uncompressed public key (0x04 ‖ X ‖ Y), as Ethereum addresses need.
+    public static func uncompressedPublicKey(privateKey: [UInt8]) throws -> [UInt8] {
+        guard privateKey.count == 32 else { throw Secp256k1Error.invalidPrivateKey }
+        var pub = secp256k1_pubkey()
+        guard secp256k1_ec_pubkey_create(ctx, &pub, privateKey) == 1 else { throw Secp256k1Error.invalidPrivateKey }
+        return serialize(&pub, flags: uncompressed)
+    }
+
+    /// Recovers the uncompressed public key that made a 65-byte `r ‖ s ‖ v` signature
+    /// (v = 27/28 or 0/1) over a 32-byte digest. Used to check signed Ethereum messages.
+    public static func recoverPublicKey(signature: [UInt8], digest: [UInt8]) -> [UInt8]? {
+        guard signature.count == 65, digest.count == 32 else { return nil }
+        var v = Int32(signature[64])
+        if v >= 27 { v -= 27 }
+        guard v == 0 || v == 1 else { return nil }
+        var sig = secp256k1_ecdsa_recoverable_signature()
+        let compact = Array(signature[0..<64])
+        guard secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &sig, compact, v) == 1 else { return nil }
+        var pub = secp256k1_pubkey()
+        guard secp256k1_ecdsa_recover(ctx, &pub, &sig, digest) == 1 else { return nil }
+        return serialize(&pub, flags: uncompressed)
+    }
+
+    private static let uncompressed: UInt32 = 2   // SECP256K1_EC_UNCOMPRESSED
+
     private static func parse(_ key: [UInt8]) throws -> secp256k1_pubkey {
         var pub = secp256k1_pubkey()
         guard secp256k1_ec_pubkey_parse(ctx, &pub, key, key.count) == 1 else { throw Secp256k1Error.invalidPublicKey }
         return pub
     }
 
-    private static func serialize(_ pub: inout secp256k1_pubkey) -> [UInt8] {
-        var out = [UInt8](repeating: 0, count: 33)
+    private static func serialize(_ pub: inout secp256k1_pubkey, flags: UInt32 = 258) -> [UInt8] {
+        var out = [UInt8](repeating: 0, count: flags == 2 ? 65 : 33)
         var length = out.count
-        _ = secp256k1_ec_pubkey_serialize(ctx, &out, &length, &pub, compressed)
-        return out
+        _ = secp256k1_ec_pubkey_serialize(ctx, &out, &length, &pub, flags)
+        return Array(out.prefix(length))
     }
 }
 

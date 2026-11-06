@@ -78,6 +78,8 @@ private struct WalletHomeView: View {
                 .controlSize(.large)
             }
 
+            EthereumSection()
+
             if let error = wallet.lastError {
                 Section {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)

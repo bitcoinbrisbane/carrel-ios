@@ -48,6 +48,7 @@ Packages/LBRYKit/       Pure-Swift LBRY client
   Library/              UserLibrary: follows, watch history, Continue watching, resume points
   Chain/                CarrelChain: headers, LBRY PoW, retarget, rolling window, hub client, sync
   Wallet/               Phrases, BIP32, addresses, transactions, signing, scan, iCloud Keychain vault
+  Ethereum/             Keccak, ETH account from the same phrase, balances over RPC, lbc.exchange client
   Text/                 Linkifier for descriptions (URLs, X, Reddit, LBRY channels)
 scripts/
   make_checkpoint.py    Generates the shipped mainnet checkpoint from a live hub
@@ -113,6 +114,16 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 
 **Still to do:** the encrypted taste-profile backup keyed from the wallet seed, withdrawing your own supports, and a nudge to make an offline copy of the phrase once the balance grows.
 
+## Ethereum and lbc.exchange
+
+The same recovery phrase also gives an Ethereum account, on the standard path `m/44'/60'/0'/0/0`, so importing the phrase into MetaMask shows the same address. (LBC keeps the LBRY SDK's seed scheme; Ethereum uses the plain BIP39 seed, so each side matches its own ecosystem's wallets.)
+
+The Wallet tab shows ETH, USDC, USDT and wLBC balances from the public RPC lbc.exchange uses, and a Receive screen for the Ethereum address.
+
+**Wrap LBC → wLBC.** Carrel asks [lbc.exchange](https://lbc.exchange) for this wallet's deposit address, then trusts it only if the bridge's signed statement names exactly that LBC address, this Ethereum address, the bridge and chain 1, *and* the signature recovers to `Bridge.signer()` read from Ethereum, not from the API (the same check the website does). LBC goes from the Carrel wallet to that address, and the deposit shows as pending → ready → minted. Minting currently happens at lbc.exchange with the same phrase in MetaMask; in-app `Bridge.wrap`, unwrap and token sends need Ethereum transaction signing, which is next.
+
+Keccak-256, EIP-55 checksums, address derivation and EIP-191 signature recovery are tested against eth-account vectors (`Fixtures/eth_vectors.json`).
+
 ## Roadmap
 
 1. Browse, search, channels, playback *(built)*
@@ -123,7 +134,7 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 5. CarrelChain + wallet: checkpoint sync, keys, scan, tip/support/send *(core built)*; screens next
 6. `carrel-node`: own lbrynet, hub, seeding node, comment server, moderation list
 7. Publishing from the phone
-8. **Wrapped LBC (wLBC) on Ethereum** *(not urgent)* — show wLBC alongside LBC and wrap/unwrap through [lbc.exchange](https://lbc.exchange) (contract `0xB0F2C4f8b7c0f088f7844947EcBf1220bFCa08C1`), so tips can come from Ethereum users too
+8. **lbc.exchange bridge and Ethereum** *(started)* — ETH address from the same phrase (MetaMask-compatible), ETH/USDC/USDT/wLBC balances, wrap LBC → wLBC with a verified deposit address. Next: signing Ethereum transactions in Carrel to mint (`Bridge.wrap`), unwrap (`Bridge.unwrap`) and send ETH/tokens
 
 ## App Store notes
 

@@ -22,6 +22,13 @@ final class WalletModel {
     private(set) var verifiedHeight: Int?
     var lastError: String?
 
+    // Ethereum, from the same phrase (standard path, so MetaMask shows the same address).
+    private(set) var ethereum: EthereumAccount?
+    private(set) var ethBalances: EthereumBalances?
+    private(set) var bridgeDeposits: [LBCBridge.Deposit] = []
+    let ethRPC = EthereumRPC()
+    let bridge = LBCBridge()
+
     private var wallet: Wallet?
     private var hub: HubClient?
     private var chain: HeaderChain?
@@ -71,6 +78,7 @@ final class WalletModel {
 
     private func open(phrase: String) async throws {
         let account = try WalletAccount(phrase: phrase)
+        ethereum = try EthereumAccount(phrase: phrase)
         let hub = try await connectHub()
         self.hub = hub
         wallet = Wallet(account: account, backend: hub)
@@ -84,6 +92,7 @@ final class WalletModel {
         guard let wallet, !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
+        async let eth: Void = refreshEthereum()
         do {
             let headers = try await syncHeaders()
             snapshot = try await wallet.scan(headers: headers)
@@ -93,6 +102,28 @@ final class WalletModel {
             // A dropped hub connection: try another next time.
             if error is HubError { hub = nil; self.wallet = nil; phase = .idle; await startIfNeeded() }
         }
+        await eth
+    }
+
+    /// ETH, USDC, USDT and wLBC balances, plus any lbc.exchange deposits in flight.
+    func refreshEthereum() async {
+        guard let address = ethereum?.address else { return }
+        ethBalances = await EthereumBalances.fetch(for: address, rpc: ethRPC)
+        if let deposits = try? await bridge.deposits(for: address) { bridgeDeposits = deposits }
+    }
+
+    // MARK: lbc.exchange
+
+    /// This wallet's lbc.exchange deposit address, only after checking the bridge's
+    /// signature against `Bridge.signer()` read from Ethereum.
+    func verifiedDepositOffer() async throws -> LBCBridge.DepositOffer {
+        guard let address = ethereum?.address else { throw WalletError.watchOnly }
+        let bridge = self.bridge, rpc = ethRPC
+        async let offer = bridge.depositOffer(for: address)
+        async let signer = rpc.readAddress(contract: bridge.bridgeAddress, function: "signer()")
+        let (o, s) = try await (offer, signer)
+        try bridge.verify(o, onChainSigner: s)
+        return o
     }
 
     /// CarrelChain: validate headers from our checkpoint (or the saved window) to the hub's tip.

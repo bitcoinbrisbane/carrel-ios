@@ -1,0 +1,51 @@
+{
+ "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+ "path0": {
+  "privateKey": "1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727",
+  "publicKeyUncompressed": "0437b0bb7a8288d38ed49a524b5dc98cff3eb5ca824c9f9dc0dfdb3d9cd600f299a6179912b7451c09896c4098eca7ce6b2e58330672795e847c4d6af44e024230",
+  "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94"
+ },
+ "path1": {
+  "address": "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0"
+ },
+ "keccak": [
+  {
+   "input": "",
+   "hash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+  },
+  {
+   "input": "abc",
+   "hash": "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
+  },
+  {
+   "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "hash": "96ea54061def936c4be90b518992fdc6f12f535068a256229aca54267b4d084d"
+  },
+  {
+   "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "hash": "50da8ef3747b7a7f01d08563aa11c72a2a668563fb928adc6e8d2a1ab4e36096"
+  },
+  {
+   "input": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+   "hash": "381d81af29434d050b0d038b59157d96015ad07ad6f4267838db2d3c245d383a"
+  }
+ ],
+ "selectors": {
+  "balanceOf(address)": "70a08231",
+  "signer()": "238ac933",
+  "decimals()": "313ce567"
+ },
+ "checksum": [
+  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+  "0xB0F2C4f8b7c0f088f7844947EcBf1220bFCa08C1",
+  "0xa3A3E8304C88b017153bA5dFCCDACCB7116a185f"
+ ],
+ "signedMessage": {
+  "message": "lbry.exchange deposit address\nLBC address: bMg8mCxn8kjZPKQ4rihZPEeq4aFMLNQf4k\nMints wLBC to: 0x9858EfFD232B4033E47d90003D41EC34EcaEda94\nBridge: 0xa3A3E8304C88b017153bA5dFCCDACCB7116a185f\nChain: 1",
+  "eip191Hash": "66c49096cbe949b05aa1f239d650a5f3e2a0c9d3917a4dabefef21bd825eef3c",
+  "signature": "a3d7a5a1992e76d56c73c2b772136356376783e24f86aac31d301b85c95fe14a5eed7d20aedd26af68031e38db0534969d495fa7be0c281e8d7bdb73d9c5df521b",
+  "signer": "0x1AE507e273d12A86d7BAB2Dc194515cA6353eB7F",
+  "depositAddress": "bMg8mCxn8kjZPKQ4rihZPEeq4aFMLNQf4k"
+ }
+}
