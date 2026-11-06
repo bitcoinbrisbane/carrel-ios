@@ -21,8 +21,13 @@ public struct EthereumAccount: Sendable {
         self.address = try EthereumAddress.from(publicKey: Secp256k1.uncompressedPublicKey(privateKey: privateKey))
     }
 
-    /// For signing Ethereum transactions (next step); never leaves the wallet.
+    /// Never leaves the wallet.
     func signingKey() -> [UInt8] { privateKey }
+
+    /// Signs an EIP-1559 transaction: raw bytes for `eth_sendRawTransaction`, and its hash.
+    public func sign(_ transaction: EthereumTransaction) throws -> (raw: [UInt8], hash: String) {
+        try transaction.signed(privateKey: privateKey)
+    }
 }
 
 public enum EthereumAddress {
@@ -68,11 +73,24 @@ public enum PersonalMessage {
         return Keccak256.hash(Array("\u{19}Ethereum Signed Message:\n\(bytes.count)".utf8) + bytes)
     }
 
+    public static func hash(bytes: [UInt8]) -> [UInt8] {
+        Keccak256.hash(Array("\u{19}Ethereum Signed Message:\n\(bytes.count)".utf8) + bytes)
+    }
+
     /// The address that signed `message`, or nil if the signature is malformed.
     public static func signer(of message: String, signature hex: String) -> String? {
+        signer(digest: hash(message), signature: hex)
+    }
+
+    /// The address that personal-signed these raw bytes (e.g. a 32-byte hash).
+    public static func signer(ofBytes bytes: [UInt8], signature hex: String) -> String? {
+        signer(digest: hash(bytes: bytes), signature: hex)
+    }
+
+    private static func signer(digest: [UInt8], signature hex: String) -> String? {
         let body = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
         guard let signature = [UInt8](hex: body.lowercased()),
-              let publicKey = Secp256k1.recoverPublicKey(signature: signature, digest: hash(message)) else { return nil }
+              let publicKey = Secp256k1.recoverPublicKey(signature: signature, digest: digest) else { return nil }
         return try? EthereumAddress.from(publicKey: publicKey)
     }
 }

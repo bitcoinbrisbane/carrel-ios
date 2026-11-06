@@ -114,3 +114,42 @@ actor StreamURLCache {
         }
     }
 }
+
+/// Ethereum transactions Carrel sent, so mints, sends and unwraps can be followed
+/// (and unwrap payouts requested) even if the app was closed in between.
+struct EthereumActivity: Codable, Identifiable, Equatable {
+    enum Kind: String, Codable { case send, mint, unwrap }
+    enum State: String, Codable {
+        case submitted        // broadcast, not mined yet
+        case confirmed        // mined and succeeded (sends and mints end here)
+        case awaitingPayout   // unwrap mined; waiting for 12 confirmations and the LBC payout
+        case paid             // unwrap: the bridge paid the LBC
+        case failed
+    }
+
+    let hash: String
+    let kind: Kind
+    let title: String
+    let date: Date
+    var state: State
+    var detail: String?
+    var id: String { hash }
+
+    var isOpen: Bool { state == .submitted || state == .awaitingPayout }
+}
+
+enum EthereumActivityStore {
+    static var url: URL {
+        TasteStore.url.deletingLastPathComponent().appendingPathComponent("eth-activity.json")
+    }
+
+    static func load() -> [EthereumActivity] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([EthereumActivity].self, from: data)) ?? []
+    }
+
+    static func save(_ items: [EthereumActivity]) {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(Array(items.prefix(50))).write(to: url, options: .atomic)
+    }
+}

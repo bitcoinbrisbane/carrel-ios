@@ -30,6 +30,11 @@ final class WalletModel {
     private(set) var bridgeDeposits: [LBCBridge.Deposit] = []
     let ethRPC = EthereumRPC()
     let bridge = LBCBridge()
+    /// Ethereum transactions sent from Carrel, newest first.
+    private(set) var ethActivity: [EthereumActivity] = EthereumActivityStore.load() {
+        didSet { EthereumActivityStore.save(ethActivity) }
+    }
+    private var following: Set<String> = []
 
     private var wallet: Wallet?
     private var hub: HubClient?
@@ -111,8 +116,111 @@ final class WalletModel {
     /// ETH, USDC, USDT and wLBC balances, plus any lbc.exchange deposits in flight.
     func refreshEthereum() async {
         guard let address = ethereum?.address else { return }
+        resumeEthereumActivity()
         ethBalances = await EthereumBalances.fetch(for: address, rpc: ethRPC)
         if let deposits = try? await bridge.deposits(for: address) { bridgeDeposits = deposits }
+    }
+
+    // MARK: Ethereum transactions
+
+    /// Nonce, gas, fees and an ETH balance check for a call from this wallet.
+    func prepareEthereum(_ call: EthereumCall) async throws -> PreparedEthereumTx {
+        guard let address = ethereum?.address else { throw WalletError.watchOnly }
+        return try await ethRPC.prepare(call, from: address)
+    }
+
+    /// Signs and broadcasts, then follows it in the background (and, for an unwrap,
+    /// asks the bridge for the LBC once Ethereum has 12 confirmations).
+    @discardableResult
+    func submitEthereum(_ prepared: PreparedEthereumTx, kind: EthereumActivity.Kind, title: String) async throws -> String {
+        guard let ethereum else { throw WalletError.watchOnly }
+        let signed = try ethereum.sign(prepared.transaction)
+        let hash = try await ethRPC.sendRawTransaction(signed.raw)
+        ethActivity.insert(EthereumActivity(hash: hash, kind: kind, title: title, date: Date(), state: .submitted), at: 0)
+        Task { await follow(hash) }
+        return hash
+    }
+
+    enum MintReadiness {
+        case ready(EthereumCall, dewies: UInt64)
+        case waiting(confirmations: Int, required: Int)
+        case alreadyMinted
+    }
+
+    /// Asks lbc.exchange to approve a mint for this deposit and checks the approval
+    /// (it mints to us, signed by `Bridge.signer()` read from Ethereum) before any gas is spent.
+    func mintCall(for deposit: LBCBridge.Deposit) async throws -> MintReadiness {
+        guard let address = ethereum?.address else { throw WalletError.watchOnly }
+        let bridge = self.bridge, rpc = ethRPC
+        async let approval = bridge.mintApproval(ethAddress: address, lbcTxid: deposit.lbcTxid)
+        async let signer = rpc.readAddress(contract: bridge.bridgeAddress, function: "signer()")
+        switch try await approval {
+        case .alreadyMinted:
+            return .alreadyMinted
+        case .waiting(let confirmations, let required):
+            return .waiting(confirmations: confirmations, required: required)
+        case .approved(let args):
+            try bridge.verify(args, ethAddress: address, onChainSigner: try await signer)
+            return .ready(try EthereumCall.bridgeWrap(args, bridge: bridge.bridgeAddress), dewies: args.dewies)
+        }
+    }
+
+    /// Picks up anything still open from an earlier launch.
+    func resumeEthereumActivity() {
+        for item in ethActivity where item.isOpen && !following.contains(item.hash) {
+            Task { await follow(item.hash) }
+        }
+    }
+
+    private func follow(_ hash: String) async {
+        guard !following.contains(hash) else { return }
+        following.insert(hash)
+        defer { following.remove(hash) }
+
+        if activity(hash)?.state == .submitted {
+            guard let receipt = try? await ethRPC.waitForReceipt(hash) else { return }   // still pending: resume later
+            let isUnwrap = activity(hash)?.kind == .unwrap
+            update(hash) {
+                $0.state = receipt.succeeded ? (isUnwrap ? .awaitingPayout : .confirmed) : .failed
+                if !receipt.succeeded { $0.detail = "Reverted on Ethereum" }
+            }
+            await refreshBalancesAfterSend()
+        }
+
+        guard activity(hash)?.state == .awaitingPayout else { return }
+        // POST unwrap is safe to repeat: the bridge never pays the same burn twice.
+        for _ in 0..<90 {
+            if let status = try? await bridge.requestPayout(burnTxid: hash) {
+                switch status.state {
+                case .paid:
+                    let payout = status.payoutTxids.first.map { txid in "LBC sent · \(txid.prefix(10))…" }
+                    update(hash) { $0.state = .paid; $0.detail = payout }
+                    await refresh()
+                    return
+                case .failed, .reverted, .noEvent:
+                    update(hash) { $0.state = .failed; $0.detail = status.error ?? "The bridge couldn't pay this unwrap" }
+                    return
+                default:
+                    update(hash) { $0.detail = "\(min(status.confirmations, status.required)) of \(status.required) Ethereum confirmations" }
+                }
+            }
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
+        }
+    }
+
+    private func refreshBalancesAfterSend() async {
+        guard let address = ethereum?.address else { return }
+        ethBalances = await EthereumBalances.fetch(for: address, rpc: ethRPC)
+        if let deposits = try? await bridge.deposits(for: address) { bridgeDeposits = deposits }
+    }
+
+    private func activity(_ hash: String) -> EthereumActivity? {
+        ethActivity.first { $0.hash == hash }
+    }
+
+    private func update(_ hash: String, _ change: (inout EthereumActivity) -> Void) {
+        guard let i = ethActivity.firstIndex(where: { $0.hash == hash }) else { return }
+        change(&ethActivity[i])
     }
 
     // MARK: lbc.exchange
@@ -209,6 +317,12 @@ final class WalletModel {
             return "The hub's answer didn't match the blockchain. Carrel stopped to keep you safe; it will try another hub."
         case is HubError:
             return "Couldn't reach an LBRY hub. Check your connection and try again."
+        case EthereumRPCError.rpc(let message):
+            return message.localizedCaseInsensitiveContains("revert")
+                ? "Ethereum says this would fail (\(message)). Nothing was sent."
+                : "Ethereum node: \(message)"
+        case is EthereumRPCError:
+            return "Couldn't reach Ethereum. Check your connection and try again."
         default:
             return error.localizedDescription
         }

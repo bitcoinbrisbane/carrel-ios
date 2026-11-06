@@ -144,6 +144,23 @@ public enum Secp256k1 {
         return serialize(&pub, flags: uncompressed)
     }
 
+    /// Recoverable ECDSA signature for Ethereum: (r, s, recovery id 0/1). Low-S,
+    /// RFC 6979 nonce, so the same key and digest always give the same signature.
+    public static func signRecoverable(digest: [UInt8], privateKey: [UInt8]) throws -> (r: [UInt8], s: [UInt8], recid: Int32) {
+        guard digest.count == 32 else { throw Secp256k1Error.signingFailed }
+        guard isValidPrivateKey(privateKey) else { throw Secp256k1Error.invalidPrivateKey }
+        var sig = secp256k1_ecdsa_recoverable_signature()
+        guard secp256k1_ecdsa_sign_recoverable(ctx, &sig, digest, privateKey, nil, nil) == 1 else {
+            throw Secp256k1Error.signingFailed
+        }
+        var compact = [UInt8](repeating: 0, count: 64)
+        var recid: Int32 = 0
+        guard secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, &compact, &recid, &sig) == 1 else {
+            throw Secp256k1Error.signingFailed
+        }
+        return (Array(compact[0..<32]), Array(compact[32..<64]), recid)
+    }
+
     private static let uncompressed: UInt32 = 2   // SECP256K1_EC_UNCOMPRESSED
 
     private static func parse(_ key: [UInt8]) throws -> secp256k1_pubkey {

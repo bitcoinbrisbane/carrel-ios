@@ -5,7 +5,9 @@ import LBRYKit
 struct EthereumSection: View {
     @Environment(AppModel.self) private var model
     @State private var showReceive = false
+    @State private var showSend = false
     @State private var showWrap = false
+    @State private var showUnwrap = false
 
     var body: some View {
         let wallet = model.wallet
@@ -28,19 +30,30 @@ struct EthereumSection: View {
                 HStack { ProgressView(); Text("Reading Ethereum…").foregroundStyle(.secondary) }
             }
 
-            HStack(spacing: 12) {
-                Button { showReceive = true } label: {
-                    Label("Receive", systemImage: "arrow.down").frame(maxWidth: .infinity)
+            VStack(spacing: 10) {
+                HStack(spacing: 12) {
+                    Button { showReceive = true } label: {
+                        Label("Receive", systemImage: "arrow.down").frame(maxWidth: .infinity)
+                    }
+                    Button { showSend = true } label: {
+                        Label("Send", systemImage: "arrow.up").frame(maxWidth: .infinity)
+                    }
                 }
-                Button { showWrap = true } label: {
-                    Label("Wrap LBC", systemImage: "arrow.left.arrow.right").frame(maxWidth: .infinity)
+                HStack(spacing: 12) {
+                    Button { showWrap = true } label: {
+                        Label("Wrap LBC", systemImage: "arrow.right.circle").frame(maxWidth: .infinity)
+                    }
+                    Button { showUnwrap = true } label: {
+                        Label("Unwrap", systemImage: "arrow.left.circle").frame(maxWidth: .infinity)
+                    }
                 }
             }
             .buttonStyle(.bordered)
             .disabled(wallet.ethereum == nil)
 
+            ForEach(wallet.ethActivity.prefix(3)) { EthereumActivityRow(item: $0) }
             if !wallet.bridgeDeposits.isEmpty {
-                ForEach(wallet.bridgeDeposits.prefix(3)) { BridgeDepositRow(deposit: $0) }
+                ForEach(wallet.bridgeDeposits.filter { $0.status != .minted }.prefix(3)) { BridgeDepositRow(deposit: $0) }
             }
         } header: {
             Text("Ethereum")
@@ -52,8 +65,14 @@ struct EthereumSection: View {
         .sheet(isPresented: $showReceive) {
             NavigationStack { EthereumReceiveView(address: wallet.ethereum?.address ?? "") }
         }
+        .sheet(isPresented: $showSend) {
+            NavigationStack { EthereumSendView() }
+        }
         .sheet(isPresented: $showWrap) {
             NavigationStack { WrapView() }
+        }
+        .sheet(isPresented: $showUnwrap) {
+            NavigationStack { UnwrapView() }
         }
     }
 }
@@ -82,6 +101,7 @@ private struct TokenBadge: View {
 
 struct BridgeDepositRow: View {
     let deposit: LBCBridge.Deposit
+    var onMint: (() -> Void)? = nil
 
     var body: some View {
         HStack {
@@ -89,6 +109,10 @@ struct BridgeDepositRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("Wrap \(LBCAmount.format(deposit.amount)) LBC").font(.subheadline)
                 Text(caption).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if deposit.status == .ready, let onMint {
+                Button("Mint", action: onMint).buttonStyle(.borderedProminent).controlSize(.small)
             }
         }
     }
@@ -162,6 +186,7 @@ struct WrapView: View {
     @State private var isWorking = false
     @State private var error: String?
     @State private var sentTxid: String?
+    @State private var minting: LBCBridge.Deposit?
 
     var body: some View {
         let wallet = model.wallet
@@ -211,11 +236,13 @@ struct WrapView: View {
 
             if !wallet.bridgeDeposits.isEmpty {
                 Section {
-                    ForEach(wallet.bridgeDeposits) { BridgeDepositRow(deposit: $0) }
+                    ForEach(wallet.bridgeDeposits) { deposit in
+                        BridgeDepositRow(deposit: deposit) { minting = deposit }
+                    }
                 } header: {
                     Text("Your deposits")
                 } footer: {
-                    Text("Once a deposit is ready, mint it at lbc.exchange by connecting a wallet with this same recovery phrase (MetaMask shows the same Ethereum address). Minting from inside Carrel is coming next.")
+                    Text("Once a deposit has 6 confirmations, Mint asks the bridge for a signed approval, checks it against the bridge contract, and submits Bridge.wrap from your Ethereum address. Minting costs ETH gas.")
                 }
                 Section {
                     Button("Open lbc.exchange") { openURL(LBCBridge.website) }
@@ -229,6 +256,9 @@ struct WrapView: View {
         .toolbar { Button("Done") { dismiss() } }
         .refreshable { await model.wallet.refreshEthereum() }
         .task { await loadOffer() }
+        .sheet(item: $minting) { deposit in
+            NavigationStack { MintView(deposit: deposit) }
+        }
     }
 
     private func loadOffer() async {

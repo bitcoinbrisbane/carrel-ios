@@ -117,10 +117,22 @@ public struct LBCBridge: Sendable {
 
     // MARK: HTTP
 
-    private func get(_ function: String, _ query: [String: String]) async throws -> [String: Any] {
+    func get(_ function: String, _ query: [String: String]) async throws -> [String: Any] {
         var components = URLComponents(url: api.appendingPathComponent(function), resolvingAgainstBaseURL: false)!
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
-        let (data, response) = try await session.data(from: components.url!)
+        return try await send(URLRequest(url: components.url!))
+    }
+
+    func post(_ function: String, _ body: [String: String]) async throws -> [String: Any] {
+        var request = URLRequest(url: api.appendingPathComponent(function))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return try await send(request)
+    }
+
+    private func send(_ request: URLRequest) async throws -> [String: Any] {
+        let (data, response) = try await session.data(for: request)
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw BridgeError.http(http.statusCode, json?["error"] as? String)

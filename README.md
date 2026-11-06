@@ -126,9 +126,17 @@ The same recovery phrase also gives an Ethereum account, on the standard path `m
 
 The Wallet tab shows ETH, USDC, USDT and wLBC balances from the public RPC lbc.exchange uses, and a Receive screen for the Ethereum address.
 
-**Wrap LBC → wLBC.** Carrel asks [lbc.exchange](https://lbc.exchange) for this wallet's deposit address, then trusts it only if the bridge's signed statement names exactly that LBC address, this Ethereum address, the bridge and chain 1, *and* the signature recovers to `Bridge.signer()` read from Ethereum, not from the API (the same check the website does). LBC goes from the Carrel wallet to that address, and the deposit shows as pending → ready → minted. Minting currently happens at lbc.exchange with the same phrase in MetaMask; in-app `Bridge.wrap`, unwrap and token sends need Ethereum transaction signing, which is next.
+**Wrap LBC → wLBC.** Carrel asks [lbc.exchange](https://lbc.exchange) for this wallet's deposit address, then trusts it only if the bridge's signed statement names exactly that LBC address, this Ethereum address, the bridge and chain 1, *and* the signature recovers to `Bridge.signer()` read from Ethereum, not from the API (the same check the website does). LBC goes from the Carrel wallet to that address, and the deposit shows as pending → ready → minted.
 
-Keccak-256, EIP-55 checksums, address derivation and EIP-191 signature recovery are tested against eth-account vectors (`Fixtures/eth_vectors.json`).
+**Mint.** Once a deposit has 6 LBC confirmations, *Mint* asks the bridge for a mint approval (`POST wrap`), recomputes `Bridge.wrapMessageHash` on the phone and checks the approval mints to this wallet and was signed by `Bridge.signer()`, then shows the gas cost and submits `Bridge.wrap` itself. No MetaMask needed.
+
+**Unwrap.** `Bridge.unwrap(amount, lbcAddress)` burns wLBC, paying LBC to this wallet's next receive address by default. Carrel follows the burn and, after 12 Ethereum confirmations, asks the bridge to pay (`POST unwrap`, safe to repeat) until the LBC arrives. Open unwraps are saved, so this resumes if the app was closed.
+
+**Send.** ETH, USDC, USDT and wLBC to any Ethereum address, with a review showing the likely and worst-case fee. USDT's `transfer` returns nothing rather than `true`, so a successful receipt is the success signal for every token.
+
+**Signing.** EIP-1559 (type 2) transactions: RLP, ABI encoding (static and dynamic arguments), nonce from the pending pool, `eth_estimateGas` + 20% (an estimation revert stops the send before anything is signed), max fee = 2 × base fee + tip, and a check that the wallet holds value plus worst-case fee in ETH. Signatures use libsecp256k1's recoverable ECDSA (RFC 6979, low-S).
+
+Keccak-256, EIP-55 checksums, address derivation and EIP-191 recovery are tested against eth-account (`Fixtures/eth_vectors.json`); RLP, calldata, signing hashes, raw signed transactions and hashes for an ETH send, a USDC transfer, `Bridge.wrap` and `Bridge.unwrap` match eth-account and pyrlp byte for byte (`Fixtures/eth_tx_vectors.json`).
 
 ## Roadmap
 
@@ -140,7 +148,7 @@ Keccak-256, EIP-55 checksums, address derivation and EIP-191 signature recovery 
 5. CarrelChain + wallet: checkpoint sync, keys, scan, tip/support/send *(core built)*; screens next
 6. `carrel-node`: own lbrynet, hub, seeding node, comment server, moderation list
 7. Publishing from the phone
-8. **lbc.exchange bridge and Ethereum** *(started)* — ETH address from the same phrase (MetaMask-compatible), ETH/USDC/USDT/wLBC balances, wrap LBC → wLBC with a verified deposit address. Next: signing Ethereum transactions in Carrel to mint (`Bridge.wrap`), unwrap (`Bridge.unwrap`) and send ETH/tokens
+8. **lbc.exchange bridge and Ethereum** *(built)* — ETH address from the same phrase (MetaMask-compatible), ETH/USDC/USDT/wLBC balances, wrap LBC → wLBC with a verified deposit address, mint (`Bridge.wrap`) and unwrap (`Bridge.unwrap`) in the app, and ETH/token sends
 
 ## App Store notes
 
