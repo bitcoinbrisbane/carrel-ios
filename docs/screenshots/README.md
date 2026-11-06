@@ -1,12 +1,12 @@
 # Screenshots
 
-Real simulator or device screenshots go here (PNG, portrait, 1290×2796 or a
-simulator capture). Use the same names as `docs/mocks/` where a screen has a
-mock, so the README can show them side by side:
+Real simulator captures of Carrel, shown in the main README next to the mocks.
 
-- `home-for-you.png`
-- `shorts.png`
-- `shorts-not-for-me.png`
-- `your-taste.png`
+From the repo root, with Carrel on screen in the simulator:
 
-Simulator: `xcrun simctl io booted screenshot docs/screenshots/shorts.png`
+```sh
+scripts/screenshot.sh home-for-you
+```
+
+The script saves `docs/screenshots/<name>.png` scaled to 600 px wide. Names used:
+`home-for-you`, `shorts`, `shorts-not-for-me`, `your-taste`, `wallet`, `tip-sheet`, `wrap`.
