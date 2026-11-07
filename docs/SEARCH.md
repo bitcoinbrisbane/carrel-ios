@@ -114,11 +114,29 @@ Today each search is two round trips: Lighthouse, then `resolve`. With `resolve=
 - Recent searches and suggestions stay on the phone.
 - Search queries don't change the taste profile.
 
+## Self-hosted search in Go
+
+Tracking issue: [#28](https://github.com/bitcoinbrisbane/carrel-ios/issues/28). Part of carrel-node ([#9](https://github.com/bitcoinbrisbane/carrel-ios/issues/9)).
+
+Lighthouse is Odysee's service today, so Odysee sees every query, and search breaks if it changes or goes away. The original Lighthouse (`lbryio/lighthouse.js`, Node, MIT) was archived in January 2023 when LBRY Inc wound down. Odysee's live one appears to be a Go rewrite (its error messages come from Go libraries), and its source isn't public.
+
+**Approach.** carrel-node already plans to run a hub, and the hub's `scribe-elastic-sync` keeps an Elasticsearch index of claim metadata for its own `claim_search`. A small Go service over that index replaces Lighthouse with no importer, chainquery or MySQL of its own.
+
+- **Lighthouse's API:** `GET /search` with the parameters in the table above, returning `name`, `claimId` and `channel_claim_id`, and refusing unknown parameters and `s` under 3 characters the same way. Carrel switches over by changing `LBRYClient.searchURL`.
+- **Our own ranking:** `claim_search`'s `text` ranks poorly because of the query the hub builds, not the data. Title matches weigh most, then channel name, tags and description; exact phrases get a boost; LBC support and recency nudge the order.
+- **Filters on the server:** unlisted and private claims, mature tags (`nsfw=false`), length, date and channel.
+- **`related_to`** with Elasticsearch's more-like-this, for "More like this".
+- **Richer hits (optional):** title, thumbnail, length, tags, release time and channel in each hit, so Carrel can skip the `resolve` round trip and drop muted topics before showing anything.
+- **Plain Go:** `net/http` and an Elasticsearch client, nothing else.
+- **Checked before switching:** the same fixed set of queries run against lighthouse.odysee.tv and ours, and compared (LBRY did this with `lbryio/lightseeker.go`).
+
+Still to find out: the index's field names and how trending is stored (`hub/elastic_sync` in `lbryio/hub`), and whether `herald.go`, the hub's unfinished Go port (last changed December 2022), has search code worth reusing.
+
 ## Phases
 
 1. **Core:** `SearchQuery`, `SearchOptions` and `SearchFeed`; `nsfw=false`; paging; the channels row; mutes applied; recent searches; problems 1–5 fixed; Apple TV on the same engine. Tests for parsing, parameters, paging, de-duplication and filtering.
 2. **Refinement:** filters, `#tag` search, search within a channel, "In your library" suggestions, faster first paint.
-3. **Later:** "More like this" on video pages (`related_to`), and self-hosted Lighthouse on carrel-node.
+3. **Later:** "More like this" on video pages (`related_to`), and our own search service in Go on carrel-node, in place of Odysee's Lighthouse ([#28](https://github.com/bitcoinbrisbane/carrel-ios/issues/28)).
 
 ## Open questions
 
