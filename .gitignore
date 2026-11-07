@@ -12,3 +12,6 @@ Package.resolved
 
 # macOS
 .DS_Store
+
+# Your signing team (see Config/Signing.xcconfig)
+Config/Team.local.xcconfig

@@ -1,0 +1,8 @@
+// Signing for both apps. Put your team in Config/Team.local.xcconfig (git-ignored):
+//
+//   DEVELOPMENT_TEAM = ABCDE12345
+//
+// Use the organisation team: App Store wallets must come from an organisation account.
+// Simulator builds work without it; device builds, iCloud and TestFlight need it.
+CODE_SIGN_STYLE = Automatic
+#include? "Team.local.xcconfig"

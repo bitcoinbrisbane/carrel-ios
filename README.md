@@ -35,6 +35,22 @@ scripts/run-tv.sh "Apple TV 4K (3rd generation)" --fresh   # a named device; --f
 PULL=1 scripts/run-phone.sh          # git pull first
 ```
 
+### TestFlight
+
+1. Put your **organisation** team ID (App Store wallets must come from an organisation account) in `Config/Team.local.xcconfig`, which git ignores:
+   ```
+   DEVELOPMENT_TEAM = ABCDE12345
+   ```
+2. For iCloud sync (backup and Apple TV), uncomment the `entitlements` blocks in `project.yml`.
+3. Create the app in App Store Connect with bundle ID `au.com.bitcoinbrisbane.carrel` (iPhone and Apple TV share it, as one universal purchase).
+4. Commit, then archive and upload:
+   ```sh
+   UPLOAD=1 scripts/archive.sh both      # or phone / tv; without UPLOAD=1 it exports and opens the Organizer
+   ```
+   The build number is the commit count, so each upload from a newer commit goes up. Uploading uses the Apple ID in Xcode › Settings › Accounts, or an App Store Connect API key (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_PATH`).
+
+Icons are drawn by `scripts/make_icons.py` (iPhone icon, Apple TV layered icon and top shelf). Both apps ship a privacy manifest (no tracking, nothing collected) and declare exempt encryption only.
+
 `LBRYKit` is a local Swift package and can be tested on its own:
 
 ```sh
@@ -62,6 +78,10 @@ Packages/LBRYKit/       Pure-Swift LBRY client
   Text/                 Linkifier for descriptions (URLs, X, Reddit, LBRY channels)
 scripts/
   make_checkpoint.py    Generates the shipped mainnet checkpoint from a live hub
+  make_icons.py         Draws the app icons and Apple TV top shelf
+  run-phone.sh, run-tv.sh   Build and relaunch in a simulator
+  archive.sh            Archive (and upload) for TestFlight
+Config/                 Signing (team in Team.local.xcconfig)
 project.yml             XcodeGen spec
 ```
 

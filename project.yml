@@ -15,16 +15,26 @@ targets:
   Carrel:
     type: application
     platform: iOS
-    sources: [Carrel]
+    sources:
+      - path: Carrel
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: Carrel/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: LBRYKit
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: au.com.bitcoinbrisbane.carrel
         MARKETING_VERSION: "0.1.0"
+        # scripts/archive.sh overrides this with the commit count, so every upload goes up.
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: YES
     # iCloud key-value storage, so the encrypted taste/library backup syncs between
     # devices. Needs your Apple developer team for signing (DEVELOPMENT_TEAM), so it's
@@ -55,11 +65,17 @@ targets:
     platform: tvOS
     deploymentTarget: "17.0"
     sources:
-      - CarrelTV
+      - path: CarrelTV
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: CarrelTV/PrivacyInfo.xcprivacy
+        buildPhase: resources
       # Shared with the iPhone app: taste, library and stream-URL stores.
       - Carrel/Model/Persistence.swift
     dependencies:
       - package: LBRYKit
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     settings:
       base:
         # Same bundle ID as the iPhone app, so the App Store can offer it as one
@@ -70,6 +86,8 @@ targets:
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "3"
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     # iCloud key-value storage: syncing taste, follows and history with the iPhone
     # (Library › Link iPhone). Opt-in like the iPhone target: uncomment both blocks,
     # set your team, run xcodegen. Same bundle ID, so both share one store.
