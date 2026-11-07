@@ -67,6 +67,13 @@ targets:
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "3"
         GENERATE_INFOPLIST_FILE: YES
+    # iCloud key-value storage: syncing taste, follows and history with the iPhone
+    # (Library › Link iPhone). Opt-in like the iPhone target: uncomment both blocks,
+    # set your team, run xcodegen. Same bundle ID, so both share one store.
+    # entitlements:
+    #   path: CarrelTV/CarrelTV.entitlements
+    #   properties:
+    #     com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)$(CFBundleIdentifier)
     info:
       path: CarrelTV/Info.plist
       properties:

@@ -30,6 +30,13 @@ public struct BackupPayload: Codable, Equatable, Sendable {
 ///
 /// The key comes from the same phrase as the wallet, so restoring the wallet on
 /// a new phone is all it takes to read the backup.
+extension BackupPayload {
+    /// This device's taste and library combined with another device's backup.
+    public func merged(with other: BackupPayload, at date: Date = Date()) -> BackupPayload {
+        BackupPayload(taste: taste.merged(with: other.taste), library: library.merged(with: other.library), createdAt: date)
+    }
+}
+
 public enum EncryptedBackup {
 
     public enum Error: Swift.Error, Equatable {
@@ -54,7 +61,15 @@ public enum EncryptedBackup {
 
     /// Seals the payload, slimming history first if needed to fit `maxSize`.
     public static func seal(_ payload: BackupPayload, phrase: String) throws -> Data {
-        let key = key(phrase: phrase)
+        try seal(payload, key: key(phrase: phrase))
+    }
+
+    public static func open(_ blob: Data, phrase: String) throws -> BackupPayload {
+        try open(blob, key: key(phrase: phrase))
+    }
+
+    /// Seal with the backup key itself (Apple TV holds only this, never the phrase).
+    public static func seal(_ payload: BackupPayload, key: SymmetricKey) throws -> Data {
         var library = slimmed(payload.library)
         while true {
             let current = BackupPayload(taste: payload.taste, library: library, createdAt: payload.createdAt)
@@ -69,12 +84,12 @@ public enum EncryptedBackup {
         }
     }
 
-    public static func open(_ blob: Data, phrase: String) throws -> BackupPayload {
+    public static func open(_ blob: Data, key: SymmetricKey) throws -> BackupPayload {
         guard blob.count > magic.count, Array(blob.prefix(magic.count)) == magic else { throw Error.notABackup }
         let plain: Data
         do {
             let box = try AES.GCM.SealedBox(combined: blob.dropFirst(magic.count))
-            plain = try AES.GCM.open(box, using: key(phrase: phrase))
+            plain = try AES.GCM.open(box, using: key)
         } catch {
             throw Error.cannotDecrypt
         }

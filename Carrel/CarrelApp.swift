@@ -32,10 +32,14 @@ final class AppModel {
     var deepLinkError: String?
     /// A tip started on Apple TV (`carrel://tip?uri=…` from its QR code).
     var tipRequest: Claim?
+    /// An Apple TV asking to sync (`carrel://pair-tv?…` from its QR code), awaiting confirmation.
+    var tvPairOffer: TVPairOffer?
+    /// True while applying another device's backup, so that doesn't trigger a backup of its own.
+    private var applyingRemote = false
 
     /// Learned on this device only; saved after every change.
     var taste: TasteProfile = TasteStore.load() {
-        didSet { TasteStore.save(taste); scheduleBackup() }
+        didSet { TasteStore.save(taste); if !applyingRemote { scheduleBackup() } }
     }
 
     func record(_ signal: TasteProfile.Signal, on claim: Claim) {
@@ -44,12 +48,22 @@ final class AppModel {
 
     /// Follows and watch history, on this device only.
     var library: UserLibrary = LibraryStore.load() {
-        didSet { LibraryStore.save(library); scheduleBackup() }
+        didSet { LibraryStore.save(library); if !applyingRemote { scheduleBackup() } }
     }
 
     init() {
         // A wallet opened on a fresh phone brings its taste and library back from iCloud.
         wallet.onReady = { [weak self] in self?.restoreBackupIfFresh() }
+        // Apple TV (or another iPhone) changed the backup: fold its changes in.
+        NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: NSUbiquitousKeyValueStore.default, queue: .main
+        ) { [weak self] note in
+            let keys = note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] ?? []
+            guard keys.contains(CloudBackupStore.key) else { return }
+            MainActor.assumeIsolated { self?.pullBackup() }
+        }
+        CloudBackupStore.store.synchronize()
     }
 
     // MARK: Encrypted backup (taste + library)
@@ -71,6 +85,8 @@ final class AppModel {
     func backupNow() {
         guard wallet.isReady, let phrase = try? wallet.recoveryPhrase() else { return }
         do {
+            // Fold in what Apple TV wrote since, so its likes and follows aren't overwritten.
+            pullBackup()
             let blob = try EncryptedBackup.seal(BackupPayload(taste: taste, library: library), phrase: phrase)
             let now = Date()
             CloudBackupStore.save(blob, at: now)
@@ -102,6 +118,37 @@ final class AppModel {
         return false
     }
 
+    /// Merge the backup in iCloud (perhaps written by Apple TV) into this phone's
+    /// taste and library. Quiet: does nothing if there's no backup or it isn't ours.
+    func pullBackup() {
+        guard let phrase = try? wallet.recoveryPhrase(), let blob = CloudBackupStore.load(),
+              let remote = try? EncryptedBackup.open(blob, phrase: phrase) else { return }
+        let mergedTaste = taste.merged(with: remote.taste)
+        let mergedLibrary = library.merged(with: remote.library)
+        applyingRemote = true
+        defer { applyingRemote = false }
+        if mergedTaste != taste { taste = mergedTaste }
+        if mergedLibrary != library { library = mergedLibrary }
+    }
+
+    // MARK: Apple TV
+
+    struct TVPairOffer: Identifiable {
+        let offer: TVPairing.Offer
+        var id: String { offer.id }
+    }
+
+    /// Hands this wallet's backup key (not the phrase) to the Apple TV that showed the
+    /// QR code, through iCloud key-value storage, then backs up so the TV has data.
+    func linkAppleTV(_ offer: TVPairing.Offer) throws {
+        guard let phrase = try wallet.recoveryPhrase() else { throw WalletError.watchOnly }
+        let sealed = try offer.seal(backupKey: EncryptedBackup.key(phrase: phrase))
+        let store = CloudBackupStore.store
+        store.set(sealed, forKey: TVPairing.storeKey(id: offer.id))
+        store.synchronize()
+        backupNow()
+    }
+
     private func restoreBackupIfFresh() {
         guard taste.isEmpty, library.isEmpty, CloudBackupStore.load() != nil else { return }
         restoreBackup(replaceTaste: true)
@@ -122,6 +169,14 @@ final class AppModel {
     /// `carrel://tip?uri=lbry://…` from the Apple TV app's tip QR code.
     func open(_ link: String) {
         if let components = URLComponents(string: link), components.scheme?.lowercased() == "carrel" {
+            if components.host == "pair-tv" {
+                do {
+                    tvPairOffer = TVPairOffer(offer: try TVPairing.Offer(link: link))
+                } catch {
+                    deepLinkError = "That Apple TV code didn't scan properly. Try again."
+                }
+                return
+            }
             guard components.host == "tip",
                   let uri = components.queryItems?.first(where: { $0.name == "uri" })?.value.flatMap(LBRYURL.normalise) else {
                 deepLinkError = "Carrel can't open that link."
@@ -174,6 +229,10 @@ struct RootView: View {
         }
         .sheet(item: $model.deepLinkClaim) { claim in
             NavigationStack { ClaimDetailView(claim: claim) }
+        }
+        .sheet(item: $model.tvPairOffer) { request in
+            LinkAppleTVSheet(offer: request.offer)
+                .presentationDetents([.medium])
         }
         .sheet(item: $model.tipRequest) { claim in
             NavigationStack { TipSheet(claim: claim) }

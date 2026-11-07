@@ -141,7 +141,11 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 - **Library:** Continue watching, channels you follow, recently watched; channel pages with banner, Follow and a grid of their videos.
 - **Tipping without keys on the TV:** Tip shows a QR code for `carrel://tip?uri=lbry://…`. Scanning it with the iPhone camera opens Carrel there with the tip sheet ready, so the fee review and signing stay on the phone.
 
-Shorts isn't a tab on the TV (portrait clips waste the screen); `TVShortsView` stays in the project for a possible lean-back "play one after another" mode. The TV keeps its own taste and library for now, in Caches (tvOS's only file storage, which the system can clear when short of space). Syncing them with the iPhone is the next step.
+Shorts isn't a tab on the TV (portrait clips waste the screen); `TVShortsView` stays in the project for a possible lean-back "play one after another" mode.
+
+**Syncing with the iPhone.** Library › *Link iPhone* shows a QR code and a six-character code. Scanning it with the iPhone camera opens Carrel, which (after you check the code) encrypts the backup key to the TV's one-off X25519 key and leaves it in iCloud key-value storage; the TV picks it up, keeps it in its own Keychain and deletes the entry. From then on both devices read and write the same encrypted backup, merging rather than overwriting: follows and history are combined, and for each topic or channel the stronger opinion wins, with mutes and likes combined. The TV never holds the recovery phrase and can't touch the wallet. Needs the iCloud key-value entitlement on both targets (commented out in `project.yml` until you set a team) and the same iCloud account on both devices. Unfollowing or unmuting on one device can be undone by the other's copy for now; tombstones for removals are a follow-up.
+
+The TV keeps its taste and library in Caches (tvOS's only file storage, which the system can clear), so linking also means a cleared TV refills itself from iCloud.
 
 ## Ethereum and lbc.exchange
 

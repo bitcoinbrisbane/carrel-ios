@@ -118,6 +118,30 @@ public struct TasteProfile: Codable, Equatable, Sendable {
 
     public func hasSeen(_ claimID: String) -> Bool { seen.contains(claimID) }
 
+    /// Combine with the same viewer's profile from another device (iPhone ↔ Apple TV).
+    /// Order-independent and repeatable: for each topic or channel the stronger opinion
+    /// wins (largest magnitude), mutes, likes and seen clips are combined, counts take
+    /// the larger. Settings (surprise share, paused) stay this device's.
+    public func merged(with other: TasteProfile) -> TasteProfile {
+        func stronger(_ a: [String: Double], _ b: [String: Double]) -> [String: Double] {
+            a.merging(b) { x, y in abs(x) > abs(y) || (abs(x) == abs(y) && x > y) ? x : y }
+        }
+        var out = self
+        out.topics = stronger(topics, other.topics)
+        out.channels = stronger(channels, other.channels)
+        out.channelNames = channelNames.merging(other.channelNames) { mine, _ in mine }
+        out.mutedTopics.formUnion(other.mutedTopics)
+        out.mutedChannels.formUnion(other.mutedChannels)
+        out.liked.formUnion(other.liked)
+        var seenSet = Set(seen)
+        out.seen = seen
+        for id in other.seen where seenSet.insert(id).inserted { out.seen.append(id) }
+        if out.seen.count > Self.seenLimit { out.seen.removeFirst(out.seen.count - Self.seenLimit) }
+        out.watchedCount = max(watchedCount, other.watchedCount)
+        out.notForMeCount = max(notForMeCount, other.notForMeCount)
+        return out
+    }
+
     /// Forget everything except settings.
     public mutating func reset() {
         let (exploration, paused) = (self.exploration, isPaused)
