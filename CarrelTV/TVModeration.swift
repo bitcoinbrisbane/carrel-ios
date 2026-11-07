@@ -4,6 +4,7 @@ import LBRYKit
 /// Shown once before anything else (Guideline 1.2).
 struct TVTermsView: View {
     let onAgree: () -> Void
+    @FocusState private var agreeFocused: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 80) {
@@ -11,6 +12,7 @@ struct TVTermsView: View {
                 Image(systemName: "hand.raised.square.fill").font(.system(size: 80)).foregroundStyle(Color.carrelAccent)
                 Text("Before you start").font(.title.bold())
                 Button("I agree", action: onAgree)
+                    .focused($agreeFocused)
                 if Support.hasEmail {
                     Text("Questions or reports:\n\(Support.email)").font(.caption).foregroundStyle(.secondary)
                 }
@@ -22,6 +24,12 @@ struct TVTermsView: View {
             .focusable()       // so the remote can scroll it
         }
         .padding(100)
+        // A full-screen cover on tvOS is see-through by default: without this, Home
+        // showed through and the "I agree" button was lost behind it.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
+        .defaultFocus($agreeFocused, true)
+        .onAppear { agreeFocused = true }
     }
 }
 

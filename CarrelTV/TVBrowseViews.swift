@@ -68,7 +68,6 @@ struct TVLibraryView: View {
         let resume = library.continueWatching()
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 56) {
-                TVSyncCard()
                 if !resume.isEmpty {
                     ShelfRow(title: "Continue watching") {
                         ForEach(resume) { VideoCard(claim: $0.claim, progress: $0.progress) }
@@ -88,7 +87,7 @@ struct TVLibraryView: View {
                 if resume.isEmpty, library.following.isEmpty, library.history.isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Nothing here yet").font(.title3)
-                        Text("Videos you watch and channels you follow show up here. Link your iPhone above to bring yours over.")
+                        Text("Videos you watch and channels you follow show up here. Link your iPhone (top menu) to bring yours over.")
                             .foregroundStyle(.secondary)
                     }
                     .padding(80)

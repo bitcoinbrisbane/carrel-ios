@@ -169,6 +169,8 @@ struct TVRootView: View {
                 .tabItem { Text("Discover") }
             NavigationStack { TVLibraryView() }
                 .tabItem { Text("Library") }
+            TVSyncTab()
+                .tabItem { Text(model.isLinked ? "iPhone ✓" : "Link iPhone") }
             NavigationStack { TVSearchView() }
                 .tabItem { Image(systemName: "magnifyingglass") }
                 .accessibilityLabel("Search")

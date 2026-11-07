@@ -38,43 +38,14 @@ enum TVKeyStore {
     }
 }
 
-/// Library's sync card: link with the iPhone, or show it's linked.
-struct TVSyncCard: View {
-    @Environment(TVModel.self) private var model
-    @State private var showLink = false
-
-    var body: some View {
-        HStack(spacing: 32) {
-            Image(systemName: model.isLinked ? "checkmark.icloud" : "iphone.and.arrow.forward")
-                .font(.system(size: 44))
-                .foregroundStyle(model.isLinked ? Color.green : Color.carrelAccent)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(model.isLinked ? "Synced with your iPhone" : "Sync with your iPhone").font(.headline)
-                Text(model.isLinked
-                     ? "Taste, follows and history stay in step through iCloud" + (model.lastSync.map { " · updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
-                     : "Bring over what you follow and watch in Carrel on iPhone. Your recovery phrase stays on the phone.")
-                    .font(.callout).foregroundStyle(.secondary)
-            }
-            Spacer()
-            if model.isLinked {
-                Button("Sync now") { model.push() }
-                Button("Unlink") { model.unlink() }
-            } else {
-                Button("Link iPhone") { showLink = true }
-            }
-        }
-        .padding(.horizontal, 80)
-        .focusSection()
-        .sheet(isPresented: $showLink) { TVLinkView() }
-    }
-}
-
 /// Shows the pairing QR code and waits for the iPhone to hand over the key.
 struct TVLinkView: View {
     @Environment(TVModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var request = TVPairing.Request()
     @State private var done = false
+    /// Shown inside the iPhone tab rather than as a sheet: no Cancel / Done.
+    var embedded = false
 
     var body: some View {
         HStack(spacing: 80) {
@@ -87,7 +58,7 @@ struct TVLinkView: View {
                 if done {
                     Label("Linked", systemImage: "checkmark.circle.fill").font(.title2.bold()).foregroundStyle(.green)
                     Text("Your taste, follows and history are coming across from the iPhone.").foregroundStyle(.secondary)
-                    Button("Done") { dismiss() }
+                    if !embedded { Button("Done") { dismiss() } }
                 } else {
                     Text("Link Carrel on iPhone").font(.title2.bold())
                     Text("Scan with the iPhone camera, check the code matches, and tap Link Apple TV.")
@@ -103,7 +74,7 @@ struct TVLinkView: View {
                     } else {
                         Text("Both need to be signed in to the same iCloud account.").font(.caption).foregroundStyle(.tertiary)
                     }
-                    Button("Cancel") { dismiss() }
+                    if !embedded { Button("Cancel") { dismiss() } }
                 }
             }
             .frame(maxWidth: 760, alignment: .leading)
@@ -116,6 +87,70 @@ struct TVLinkView: View {
                 try? await Task.sleep(for: .seconds(3))
                 if Task.isCancelled { return }
             }
+        }
+    }
+}
+
+/// The iPhone tab: link (pairing QR right on the page) or the linked status, plus
+/// blocked channels and Carrel's terms and support contact.
+struct TVSyncTab: View {
+    @Environment(TVModel.self) private var model
+    @State private var showTerms = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 56) {
+                if model.isLinked {
+                    HStack(spacing: 40) {
+                        Image(systemName: "checkmark.icloud").font(.system(size: 80)).foregroundStyle(.green)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Synced with your iPhone").font(.title2.bold())
+                            Text("Taste, follows and history stay in step through iCloud. Your recovery phrase stays on the phone."
+                                 + (model.lastSync.map { " Updated \($0.formatted(.relative(presentation: .named)))." } ?? ""))
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 24) {
+                                Button("Sync now") { model.push() }
+                                Button("Unlink") { model.unlink() }
+                            }
+                            .padding(.top, 12)
+                        }
+                    }
+                    .padding(.horizontal, 80)
+                    .focusSection()
+                } else {
+                    TVLinkView(embedded: true)
+                        .focusSection()
+                }
+
+                let blocked = model.blocks.sortedChannels
+                if !blocked.isEmpty {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Blocked channels").font(.title3.weight(.semibold))
+                        ForEach(blocked, id: \.id) { channel in
+                            HStack(spacing: 32) {
+                                Text(channel.name)
+                                Button("Unblock") { model.blocks.unblock(channelID: channel.id) }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 80)
+                    .focusSection()
+                }
+
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("About").font(.title3.weight(.semibold))
+                    Button("Terms of use") { showTerms = true }
+                    if Support.hasEmail {
+                        Text("Support and reports: \(Support.email)").font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 80)
+                .focusSection()
+            }
+            .padding(.vertical, 40)
+        }
+        .sheet(isPresented: $showTerms) {
+            ScrollView { Text(Support.terms).padding(80) }.focusable()
         }
     }
 }
