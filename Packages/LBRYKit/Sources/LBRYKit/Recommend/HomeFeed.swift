@@ -252,15 +252,7 @@ public struct HomeFeed: Sendable {
             shelves.append(Shelf(id: id, title: title, subtitle: "Most supported with LBC", params: q))
         }
 
-        let alreadyShown = taste.topTopics(1).first?.tag
-        let personal = taste.topTopics(6).map(\.tag)
-        var seen: Set<String> = []
-        var topics: [(tag: String, yours: Bool)] = []
-        for tag in personal where tag != alreadyShown && seen.insert(tag).inserted { topics.append((tag, true)) }
-        for tag in Self.discoverTopics
-        where !taste.mutedTopics.contains(tag) && (taste.topics[tag] ?? 0) >= 0 && tag != alreadyShown && seen.insert(tag).inserted {
-            topics.append((tag, false))
-        }
+        let topics = Self.browseTopics(taste: taste, excluding: taste.topTopics(1).first?.tag)
         for topic in topics.prefix(topicCount) {
             var q = base
             q.anyTags = [topic.tag]
@@ -278,6 +270,77 @@ public struct HomeFeed: Sendable {
         q.notTags = blockedTags + taste.mutedTopics.sorted()
         q.pageSize = 40
         q.page = page
+        return q
+    }
+
+    /// Topics to browse: the viewer's own (up to 6) first, then popular ones, skipping
+    /// muted or turned-down topics and `excluding`.
+    public static func browseTopics(taste: TasteProfile, excluding: String? = nil) -> [(tag: String, yours: Bool)] {
+        var seen: Set<String> = excluding.map { [$0] } ?? []
+        var topics: [(tag: String, yours: Bool)] = []
+        for tag in taste.topTopics(6).map(\.tag) where seen.insert(tag).inserted { topics.append((tag, true)) }
+        for tag in discoverTopics
+        where !taste.mutedTopics.contains(tag) && (taste.topics[tag] ?? 0) >= 0 && seen.insert(tag).inserted {
+            topics.append((tag, false))
+        }
+        return topics
+    }
+
+    // MARK: Discover tab
+
+    /// What the Discover tab can show, one grid at a time.
+    public enum DiscoverSection: Hashable, Sendable, Identifiable {
+        case trending, new, topWeek, topMonth
+        case topic(String)
+
+        public var id: String {
+            switch self {
+            case .trending: return "trending"
+            case .new: return "new"
+            case .topWeek: return "top-week"
+            case .topMonth: return "top-month"
+            case .topic(let tag): return "topic-\(tag)"
+            }
+        }
+
+        public var title: String {
+            switch self {
+            case .trending: return "Trending"
+            case .new: return "New"
+            case .topWeek: return "Top this week"
+            case .topMonth: return "Top this month"
+            case .topic(let tag): return "#\(tag)"
+            }
+        }
+    }
+
+    /// Trending, New, Top this week / month, then topics (yours first).
+    public func discoverSections(taste: TasteProfile, topicCount: Int = 14) -> [DiscoverSection] {
+        [.trending, .new, .topWeek, .topMonth] + Self.browseTopics(taste: taste).prefix(topicCount).map { .topic($0.tag) }
+    }
+
+    /// One page of a Discover grid.
+    public func discoverQuery(_ section: DiscoverSection, page: Int, taste: TasteProfile, blockedTags: [String],
+                              now: Date = Date()) -> ClaimSearchParams {
+        var q = ClaimSearchParams()
+        q.duration = ">=\(minDuration)"
+        q.notTags = blockedTags + taste.mutedTopics.sorted()
+        q.pageSize = 40
+        q.page = page
+        let nowSeconds = Int(now.timeIntervalSince1970)
+        switch section {
+        case .trending:
+            q.orderBy = ["trending_group", "trending_mixed"]
+        case .new:
+            q.orderBy = ["release_time"]
+            q.releaseTime = "<=\(nowSeconds)"          // skip future-dated uploads
+        case .topWeek, .topMonth:
+            q.orderBy = ["effective_amount"]
+            q.releaseTime = ">\(nowSeconds - (section == .topWeek ? 7 : 30) * 86_400)"
+        case .topic(let tag):
+            q.anyTags = [tag]
+            q.orderBy = ["trending_group", "trending_mixed"]
+        }
         return q
     }
 

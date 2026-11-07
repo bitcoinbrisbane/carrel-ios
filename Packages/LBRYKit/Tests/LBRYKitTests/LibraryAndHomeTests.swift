@@ -98,6 +98,27 @@ final class HomeFeedTests: XCTestCase {
         XCTAssertEqual(more.duration, ">=181")
     }
 
+    func testDiscoverSections() {
+        var taste = likedSailing()
+        taste.mutedTopics.insert("news")
+        let feed = HomeFeed()
+        let sections = feed.discoverSections(taste: taste, topicCount: 4)
+        XCTAssertEqual(sections.map(\.id), ["trending", "new", "top-week", "top-month",
+                                             "topic-sailing", "topic-technology", "topic-science", "topic-education"])
+        XCTAssertEqual(sections[4].title, "#sailing")
+
+        let new = feed.discoverQuery(.new, page: 2, taste: taste, blockedTags: [], now: now)
+        XCTAssertEqual(new.orderBy, ["release_time"])
+        XCTAssertEqual(new.releaseTime, "<=\(Int(now.timeIntervalSince1970))")
+        XCTAssertEqual(new.page, 2)
+        let month = feed.discoverQuery(.topMonth, page: 1, taste: taste, blockedTags: [], now: now)
+        XCTAssertEqual(month.releaseTime, ">\(Int(now.timeIntervalSince1970) - 30 * 86_400)")
+        let topic = feed.discoverQuery(.topic("sailing"), page: 1, taste: taste, blockedTags: ["nsfw"], now: now)
+        XCTAssertEqual(topic.anyTags, ["sailing"])
+        XCTAssertEqual(topic.notTags, ["nsfw", "news"])
+        XCTAssertEqual(topic.duration, ">=181")
+    }
+
     func testQueriesFollowTasteAndLibrary() {
         var lib = UserLibrary()
         lib.follow(ChannelRef(claimId: "ch-@news", name: "@news", canonicalURL: nil, value: nil), at: now)

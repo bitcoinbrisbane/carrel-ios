@@ -60,8 +60,8 @@ struct TVRootView: View {
         TabView {
             NavigationStack { TVHomeView() }
                 .tabItem { Text("Home") }
-            TVShortsView()
-                .tabItem { Text("Shorts") }
+            NavigationStack { TVDiscoverView() }
+                .tabItem { Text("Discover") }
             NavigationStack { TVLibraryView() }
                 .tabItem { Text("Library") }
             NavigationStack { TVSearchView() }

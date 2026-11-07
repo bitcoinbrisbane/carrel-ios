@@ -48,7 +48,7 @@ Carrel/                 SwiftUI app (iOS 17+)
   CarrelApp.swift       App entry, AppModel, tabs, deep-link handling
   Model/                Taste persistence, streaming-URL prefetch cache
   Views/                Home (For you), Shorts, Search, Library, Wallet, channel page, video page, tip sheet
-CarrelTV/               Apple TV app (tvOS 17+): Home, Shorts, Search, Library, player, tip-by-QR
+CarrelTV/               Apple TV app (tvOS 17+): Home, Discover, Library, Search, player, tip-by-QR
 Packages/LBRYKit/       Pure-Swift LBRY client
   LBRYClient.swift      JSON-RPC client: resolve, claim_search, get, Lighthouse search
   Models.swift          Claim, ChannelRef, ClaimValue, Page, ClaimSearchParams
@@ -134,14 +134,14 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 
 `CarrelTV` is a tvOS 17 app built on the same LBRYKit, with a 10-foot UI: run `xcodegen`, pick the **CarrelTV** scheme and an Apple TV simulator.
 
-- **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards. Below those, Discover shelves load as you scroll: Top this week and Top this month (most supported with LBC), then a shelf per topic (your other top topics first, then popular ones like news, technology, science, gaming and music, skipping anything you've muted or turned down), and finally an endless More to watch grid. Each video appears once per page.
+- **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards, then Discover shelves that load as you scroll: Top this week and Top this month (most supported with LBC), a shelf per topic, and an endless More to watch grid. Each video appears once per page.
+- **Discover:** pick Trending, New, Top this week, Top this month or a topic (yours first, then popular ones like news, technology, science, gaming and music) along the top, and page through an endless grid below. Muted or turned-down topics and channels stay out.
 - **Video page:** backdrop, details, Play / Resume / From the start, Like, Follow, Tip. Playback is the system player (scrubbing, info panel with title and channel), saving your place every 10 seconds.
-- **Shorts:** one 9:16 clip at a time, centred. Swipe down or up on the remote for the next or previous clip, click or Play/Pause to pause, swipe right for Like, Not for me (skip, less from a channel, less #topic, hide a channel), Follow, Tip and the For you / Following switch. The same taste signals as the iPhone (likes, watched to the end, quick skips).
 - **Search:** the system TV keyboard, searching as you type; `lbry://` links and @channels resolve directly.
 - **Library:** Continue watching, channels you follow, recently watched; channel pages with banner, Follow and a grid of their videos.
 - **Tipping without keys on the TV:** Tip shows a QR code for `carrel://tip?uri=lbry://…`. Scanning it with the iPhone camera opens Carrel there with the tip sheet ready, so the fee review and signing stay on the phone.
 
-The TV keeps its own taste and library for now, in Caches (tvOS's only file storage, which the system can clear when short of space). Syncing them with the iPhone is the next step.
+Shorts isn't a tab on the TV (portrait clips waste the screen); `TVShortsView` stays in the project for a possible lean-back "play one after another" mode. The TV keeps its own taste and library for now, in Caches (tvOS's only file storage, which the system can clear when short of space). Syncing them with the iPhone is the next step.
 
 ## Ethereum and lbc.exchange
 
