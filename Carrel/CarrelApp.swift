@@ -3,6 +3,7 @@ import LBRYKit
 
 @main
 struct CarrelApp: App {
+    @UIApplicationDelegateAdaptor(CarrelAppDelegate.self) private var appDelegate
     @State private var model = AppModel()
 
     var body: some Scene {
@@ -22,6 +23,7 @@ final class AppModel {
     let client = LBRYClient()
     let streams = StreamURLCache()
     let wallet = WalletModel()
+    let downloads = DownloadManager()
     /// Public like counts from Odysee (read-only; Carrel likes stay private).
     let reactions = OdyseeReactions(tokenStore: .init(
         load: { UserDefaults.standard.string(forKey: "odysee.authToken") },

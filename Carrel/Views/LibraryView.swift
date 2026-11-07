@@ -19,6 +19,19 @@ struct LibraryView: View {
                 Text("What Carrel has learned from what you watch. It stays on this phone.")
             }
 
+            Section {
+                NavigationLink {
+                    DownloadsView()
+                } label: {
+                    HStack {
+                        Label("Downloads", systemImage: "arrow.down.circle")
+                        Spacer()
+                        let count = model.downloads.index.records.count
+                        if count > 0 { Text("\(count)").foregroundStyle(.secondary) }
+                    }
+                }
+            }
+
             Section("Following") {
                 if library.following.isEmpty {
                     Text("Tap Follow on a channel to see it here.").foregroundStyle(.secondary)
@@ -73,10 +86,6 @@ struct LibraryView: View {
                 }
             }
 
-            Section("Coming soon") {
-                Label("Downloads", systemImage: "arrow.down.circle")
-            }
-            .foregroundStyle(.secondary)
         }
         .navigationTitle("Library")
         .navigationDestination(for: Claim.self) { ClaimDetailView(claim: $0) }
@@ -88,7 +97,7 @@ struct LibraryView: View {
     }
 }
 
-private struct VideoThumb: View {
+struct VideoThumb: View {
     let claim: Claim
     let progress: Double?
 

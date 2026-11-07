@@ -104,6 +104,8 @@ The mock screens are on the "Carrel mock screens" design canvas.
 
 The Home tab is the "For you" mock made real. `HomeFeed` asks `claim_search` for up to four candidate sets (trending, channels you follow, your top channel, your top topic; videos over 3 minutes, since Shorts has the rest), then ranks everything on the phone with the same `FeedRanker` as Shorts. The best match becomes the featured video (with its "% match" when it's 70% or more), and each video appears in at most one row. Chips switch to Following, or to your top topics.
 
+**Downloads.** *Download* on a video page saves it for offline viewing; Library › Downloads lists them with progress, storage used and a Wi-Fi-only switch (on by default). Plain MP4 streams download with a background `URLSession` (they carry on with the app closed, and pause keeps resume data); HLS streams download as `.movpkg` packages with `AVAssetDownloadURLSession`. Files live in Application Support, excluded from iCloud backup, and a downloaded video plays from the file with no network (resume position included). Apple TV has no downloads (tvOS has no lasting file storage).
+
 Following and history live in `UserLibrary`, saved on the phone. The player saves your place every 10 seconds; videos between 5% and 95% watched show in Continue watching and resume where you stopped, and finishing a long video counts as a "watched to the end" taste signal.
 
 ### Encrypted backup
@@ -168,7 +170,7 @@ Keccak-256, EIP-55 checksums, address derivation and EIP-191 recovery are tested
 ## Roadmap
 
 1. Browse, search, channels, playback *(built)*
-2. Library: follows, watch history, Continue watching and resume *(built)*; downloads, PiP, background audio next
+2. Library: follows, watch history, Continue watching and resume, offline downloads *(built)*; picture-in-picture and background audio next
 3. **Shorts-style feed** *(built)* — full-screen vertical clips ≤3 min, swipe for more, like / not for me, next two prefetched
 4. **"For you" home** *(built)* — chips, a featured video with "% match", and rows: Continue watching, New from channels you follow, Because you liked @channel, More #topic, Trending, Fresh on LBRY
 

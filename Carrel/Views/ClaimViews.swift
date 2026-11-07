@@ -83,7 +83,8 @@ struct ClaimDetailView: View {
                                 .tint(Color.carrelAccent)
                                 .foregroundStyle(.black)
                         }
-                        ShareLink(item: claim.lbryURL) { Label("Share", systemImage: "square.and.arrow.up") }
+                        DownloadButton(claim: claim)
+                        ShareLink(item: claim.lbryURL) { Label("Share", systemImage: "square.and.arrow.up").labelStyle(.iconOnly) }
                             .buttonStyle(.bordered)
                         Spacer()
                         if let counts {
@@ -134,7 +135,13 @@ struct ClaimDetailView: View {
     private func load() async {
         guard player == nil else { return }
         do {
-            let url = try await model.client.streamingURL(for: claim.lbryURL)
+            // Downloaded? Play the file, no network needed.
+            let url: URL
+            if let local = model.downloads.localURL(for: claim.claimId) {
+                url = local
+            } else {
+                url = try await model.client.streamingURL(for: claim.lbryURL)
+            }
             let p = AVPlayer(url: url)
             // Pick up where you left off.
             if let resume = model.library.resumePosition(for: claim.claimId) {
