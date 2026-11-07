@@ -64,6 +64,7 @@ struct TVSyncCard: View {
             }
         }
         .padding(.horizontal, 80)
+        .focusSection()
         .sheet(isPresented: $showLink) { TVLinkView() }
     }
 }

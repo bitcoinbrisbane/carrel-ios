@@ -94,6 +94,9 @@ struct ShelfRow<Content: View>: View {
                     .padding(.vertical, 24)
             }
             .scrollClipDisabled()
+            // Moving down from anywhere above lands in this row, even when its first
+            // card isn't directly below what has focus (#24).
+            .focusSection()
         }
     }
 }
