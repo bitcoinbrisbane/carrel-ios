@@ -72,6 +72,7 @@ Packages/LBRYKit/       Pure-Swift LBRY client
   ContentFilter.swift   On-device tag/channel/claim filter (App Store Guideline 1.2)
   Recommend/            TasteProfile (signals → weights), FeedRanker (scoring + exploration), ShortsFeed, HomeFeed
   Library/              UserLibrary: follows, watch history, Continue watching, resume points
+  Search/               SearchQuery (links, @channels, text), SearchFeed (Lighthouse paging, filtering, sections), RecentSearches
   Chain/                CarrelChain: headers, LBRY PoW, retarget, rolling window, hub client, sync
   Wallet/               Phrases, BIP32, addresses, transactions, signing, scan, iCloud Keychain vault
   Ethereum/             Keccak, ETH account from the same phrase, balances over RPC, lbc.exchange client
@@ -128,6 +129,10 @@ The Home tab is the "For you" mock made real. `HomeFeed` asks `claim_search` for
 
 Following and history live in `UserLibrary`, saved on the phone. The player saves your place every 10 seconds; videos between 5% and 95% watched show in Continue watching and resume where you stopped, and finishing a long video counts as a "watched to the end" taste signal.
 
+## Search
+
+Lighthouse full-text search, through `SearchFeed` in LBRYKit (shared with Apple TV): a row of channels (the exact `@name` first, with Follow), videos from channels you follow, then everything else in Lighthouse's order, loading more as you scroll. `@name` searches channels; `lbry://` and odysee.com links open directly. Every request sends `nsfw=false`, muted channels are dropped before resolving and muted topics after, and recent searches stay on the phone (not in the iCloud backup). Design, findings about Lighthouse and the next phases: [docs/SEARCH.md](docs/SEARCH.md).
+
 ### Encrypted backup
 
 Taste, follows and watch history are backed up to iCloud key-value storage, encrypted with AES-256-GCM under a key derived (HKDF) from the wallet's recovery phrase, so Apple stores the blob but can't read it. Backups happen 20 seconds after the last change; restoring the wallet on a new phone restores them automatically, and Library › Your taste has "Back up now" and "Restore from iCloud". History drops video descriptions (and the oldest entries if needed) to stay under the 1 MB limit.
@@ -159,7 +164,7 @@ Self-custodial LBC, built into LBRYKit (`Sources/LBRYKit/Wallet`, `Chain`).
 - **Home:** the same `HomeFeed` as the iPhone: a featured best match with its "% match", then Continue watching (with progress), New from channels you follow, Because you liked, More #topic, Trending and Fresh rows of focusable cards, then Discover shelves that load as you scroll: Top this week and Top this month (most supported with LBC), a shelf per topic, and an endless More to watch grid. Each video appears once per page.
 - **Discover:** pick Trending, New, Top this week, Top this month or a topic (yours first, then popular ones like news, technology, science, gaming and music) along the top, and page through an endless grid below. Muted or turned-down topics and channels stay out.
 - **Video page:** backdrop, details, Play / Resume / From the start, Like, Follow, Tip. Playback is the system player (scrubbing, info panel with title and channel), saving your place every 10 seconds.
-- **Search:** the system TV keyboard, searching as you type; `lbry://` links and @channels resolve directly.
+- **Search:** the system TV keyboard, searching as you type, with the iPhone's engine: a Channels row, videos from channels you follow, then a grid that loads more as you scroll; `lbry://` and odysee.com links open directly.
 - **Library:** Continue watching, channels you follow, recently watched; channel pages with banner, Follow and a grid of their videos.
 - **Tipping without keys on the TV:** Tip shows a QR code for `carrel://tip?uri=lbry://…`. Scanning it with the iPhone camera opens Carrel there with the tip sheet ready, so the fee review and signing stay on the phone.
 

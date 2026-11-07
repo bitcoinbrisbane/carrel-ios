@@ -122,15 +122,34 @@ struct ChannelAvatar: View {
     }
 }
 
-/// A followed channel in a row: avatar card opening the channel.
+/// A channel in a row: avatar card opening the channel.
 struct ChannelCard: View {
-    let channel: UserLibrary.FollowedChannel
+    let id: String
+    let name: String
+    let title: String
+    let thumbnailURL: URL?
+
+    /// A channel the viewer follows.
+    init(channel: UserLibrary.FollowedChannel) {
+        id = channel.claimId
+        name = channel.name
+        title = channel.title
+        thumbnailURL = channel.thumbnailURL.flatMap(URL.init(string:))
+    }
+
+    /// A channel's own claim, e.g. from search.
+    init(claim: Claim) {
+        id = claim.claimId
+        name = claim.name
+        title = claim.title
+        thumbnailURL = claim.thumbnailURL
+    }
 
     var body: some View {
-        NavigationLink(value: ChannelRoute(id: channel.claimId, name: channel.name)) {
+        NavigationLink(value: ChannelRoute(id: id, name: name)) {
             VStack(spacing: 14) {
-                ChannelAvatar(url: channel.thumbnailURL.flatMap(URL.init(string:)), name: channel.name, size: 160)
-                Text(channel.title).font(.callout).lineLimit(1).frame(width: 200)
+                ChannelAvatar(url: thumbnailURL, name: name, size: 160)
+                Text(title).font(.callout).lineLimit(1).frame(width: 200)
             }
             .padding(12)
         }

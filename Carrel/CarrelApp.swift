@@ -53,6 +53,11 @@ final class AppModel {
         didSet { LibraryStore.save(library); if !applyingRemote { scheduleBackup() } }
     }
 
+    /// Recent searches: on this phone only, never in the iCloud backup.
+    var recentSearches: RecentSearches = RecentSearchStore.load() {
+        didSet { RecentSearchStore.save(recentSearches) }
+    }
+
     init() {
         // A wallet opened on a fresh phone brings its taste and library back from iCloud.
         wallet.onReady = { [weak self] in self?.restoreBackupIfFresh() }

@@ -1,6 +1,6 @@
 # Search
 
-Design for search on iPhone and Apple TV. Status: proposed, not built. Tracking issue: [#25](https://github.com/bitcoinbrisbane/carrel-ios/issues/25).
+Design for search on iPhone and Apple TV. Status: phase 1 built; phase 2 next. Tracking issue: [#25](https://github.com/bitcoinbrisbane/carrel-ios/issues/25).
 
 ## Today
 
@@ -22,7 +22,7 @@ Checked against `lighthouse.odysee.tv/search` on 7 November 2026. Lighthouse rej
 
 | Parameter | Result | Use |
 |---|---|---|
-| `s`, `size`, `from` | works | Query and paging |
+| `s`, `size`, `from` | works | Query and paging. `s` needs at least 3 characters ("the length must be between 3 and 99999"); shorter queries only try the exact `@name` |
 | `mediaType=video` | works | Videos only (today's default) |
 | `claimType=channel` | works | Channel results |
 | `nsfw=false` | works | Mature content filtered on the server |

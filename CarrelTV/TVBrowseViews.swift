@@ -5,28 +5,70 @@ private let gridColumns = [GridItem(.adaptive(minimum: 420, maximum: 440), spaci
 
 // MARK: - Search
 
-/// Full-text search (Lighthouse) with the system's TV keyboard. Searches as you
-/// type, after a short pause; `lbry://` links and @channels resolve directly.
+/// Search with the system's TV keyboard, as you type after a short pause. The same
+/// engine as the iPhone (LBRYKit's `SearchFeed`): channels, videos from channels you
+/// follow, then everything else, loading more as you scroll. `lbry://` and
+/// odysee.com links open directly.
 struct TVSearchView: View {
     @Environment(TVModel.self) private var model
     @State private var query = ""
-    @State private var results: [Claim] = []
+    /// What the results on screen are for.
+    @State private var searched: Searched?
+    @State private var results = SearchFeed.Results()
     @State private var isSearching = false
+    @State private var isLoadingMore = false
     @State private var error: String?
+
+    private let feed: SearchFeed = {
+        var feed = SearchFeed()
+        feed.pageSize = 24   // whole rows of the grid
+        return feed
+    }()
+
+    struct Searched: Equatable {
+        let text: String
+        let query: SearchQuery
+    }
 
     var body: some View {
         ScrollView {
-            if let error {
-                Text(error).foregroundStyle(.secondary).padding(80)
-            } else if results.isEmpty, !query.isEmpty, !isSearching {
-                Text("Nothing found for “\(query)”").foregroundStyle(.secondary).padding(80)
+            VStack(alignment: .leading, spacing: 56) {
+                if let error {
+                    Text(error).foregroundStyle(.secondary).padding(80)
+                } else if let searched, results.isEmpty, !isSearching {
+                    Text(emptyMessage(for: searched)).foregroundStyle(.secondary).padding(80)
+                }
+                if !results.channels.isEmpty {
+                    ShelfRow(title: "Channels") {
+                        ForEach(results.channels) { ChannelCard(claim: $0) }
+                    }
+                }
+                if !results.following.isEmpty {
+                    ShelfRow(title: "From channels you follow") {
+                        ForEach(results.following) { VideoCard(claim: $0) }
+                    }
+                }
+                if !results.videos.isEmpty {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if !results.channels.isEmpty || !results.following.isEmpty {
+                            Text("Videos").font(.title3.weight(.semibold)).padding(.horizontal, 80)
+                        }
+                        LazyVGrid(columns: gridColumns, spacing: 56) {
+                            ForEach(results.videos) { claim in
+                                VideoCard(claim: claim)
+                                    .onAppear { if claim.id == results.videos.last?.id { Task { await loadMore() } } }
+                            }
+                        }
+                        .padding(.horizontal, 80)
+                        .focusSection()
+                    }
+                }
+                if isLoadingMore { ProgressView().frame(maxWidth: .infinity) }
             }
-            LazyVGrid(columns: gridColumns, spacing: 56) {
-                ForEach(results) { VideoCard(claim: $0) }
-            }
-            .padding(.horizontal, 80)
+            .padding(.vertical, 40)
         }
-        .searchable(text: $query, prompt: "Videos, channels or an lbry:// link")
+        .ignoresSafeArea(edges: .horizontal)
+        .searchable(text: $query, prompt: "Videos, @channels or an lbry:// link")
         .carrelDestinations()
         .task(id: query) {
             try? await Task.sleep(for: .milliseconds(600))
@@ -35,25 +77,51 @@ struct TVSearchView: View {
         }
     }
 
+    private func emptyMessage(for searched: Searched) -> String {
+        searched.query.isTooShort
+            ? "Type at least \(SearchQuery.minimumSearchLength) characters"
+            : "Nothing found for “\(searched.text)”"
+    }
+
     private func run() async {
-        let text = query.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { results = []; error = nil; return }
+        guard let parsed = SearchQuery(query) else {
+            results = SearchFeed.Results()
+            searched = nil
+            error = nil
+            isSearching = false
+            return
+        }
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         isSearching = true
-        defer { isSearching = false }
+        // A cancelled run leaves this to the newer one that replaced it.
+        defer { if !Task.isCancelled { isSearching = false } }
         do {
-            var found: [Claim]
-            if text.contains("lbry://") || text.hasPrefix("@"), let uri = LBRYURL.normalise(text) {
-                found = try await model.client.resolve(uri).map { [$0] } ?? []
-            } else {
-                found = try await model.client.search(text, size: 30)
-            }
-            found = model.filter.apply(found)
-            guard text == query.trimmingCharacters(in: .whitespaces) else { return }
+            let found = try await feed.start(
+                parsed,
+                filter: model.filter,
+                taste: model.taste,
+                following: Set(model.library.followedChannelIDs),
+                fetcher: .client(model.client)
+            )
+            guard !Task.isCancelled else { return }   // still typing: a newer search is on its way
             results = found
+            searched = Searched(text: text, query: parsed)
             error = nil
         } catch {
+            guard !Task.isCancelled else { return }
             self.error = error.localizedDescription
         }
+    }
+
+    private func loadMore() async {
+        guard let current = searched, case .text(let text) = current.query,
+              results.hasMore, !isLoadingMore, !isSearching else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        guard let more = try? await feed.loadMore(
+            results, for: text, filter: model.filter, taste: model.taste, fetcher: .client(model.client)
+        ), searched == current else { return }
+        results = more
     }
 }
 
