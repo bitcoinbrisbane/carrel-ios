@@ -7,7 +7,8 @@ public actor LBRYClient {
     public enum Endpoint {
         /// Odysee's public SDK proxy. Fine for prototyping; swap for our own node.
         public static let odyseeProxy = URL(string: "https://api.na-backend.odysee.com/api/v1/proxy")!
-        /// Odysee's Lighthouse full-text search (claim_search has no text search).
+        /// Odysee's Lighthouse full-text search. (claim_search takes `text` too, but ranks
+        /// poorly and returns unlisted claims; see docs/SEARCH.md.)
         public static let odyseeLighthouse = URL(string: "https://lighthouse.odysee.tv/search")!
     }
 
@@ -53,22 +54,16 @@ public actor LBRYClient {
         return url
     }
 
-    /// Full-text search via Lighthouse, then resolve the hits into claims.
-    public func search(_ text: String, size: Int = 20, from: Int = 0) async throws -> [Claim] {
-        var components = URLComponents(url: searchURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "s", value: text),
-            URLQueryItem(name: "size", value: String(size)),
-            URLQueryItem(name: "from", value: String(from)),
-            URLQueryItem(name: "mediaType", value: "video"),
-        ]
-        let (data, response) = try await session.data(from: components.url!)
+    /// One page of Lighthouse hits, in its ranking order, before resolving.
+    /// `SearchFeed` turns these into claims.
+    public func lighthouse(_ query: LighthouseQuery) async throws -> [LighthouseHit] {
+        let (data, response) = try await session.data(from: query.url(base: searchURL))
+        // A bad request comes back as {"success": false, "error": "Extraneous params: …"}.
+        if let failure = try? decoder.decode(LighthouseFailure.self, from: data), let message = failure.error {
+            throw LBRYError.search(message)
+        }
         try Self.checkHTTP(response)
-        let hits = try decoder.decode([LighthouseHit].self, from: data)
-        let urls = hits.map { "lbry://\($0.name)#\($0.claimId)" }
-        guard !urls.isEmpty else { return [] }
-        let resolved = try await resolve(urls)
-        return urls.compactMap { resolved[$0] }   // keep Lighthouse's ranking order
+        return try decoder.decode([LighthouseHit].self, from: data)
     }
 
     // MARK: - JSON-RPC plumbing
@@ -106,6 +101,8 @@ public enum LBRYError: Error, Equatable {
     case rpc(code: Int, message: String)
     case emptyResult(String)
     case noStreamingURL(String)
+    /// Lighthouse refused the request (its message).
+    case search(String)
 }
 
 // MARK: - Wire types
@@ -144,7 +141,28 @@ struct ResolveEntry: Decodable {
     }
 }
 
-struct LighthouseHit: Decodable {
-    let name: String
-    let claimId: String
+/// A Lighthouse search hit: enough to resolve the claim, plus its channel's id.
+public struct LighthouseHit: Decodable, Hashable, Sendable {
+    public let name: String
+    public let claimId: String
+    /// The signing channel's claim id; nil for channels and anonymous uploads.
+    public let channelClaimId: String?
+
+    public var lbryURL: String { "lbry://\(name)#\(claimId)" }
+
+    public init(name: String, claimId: String, channelClaimId: String? = nil) {
+        self.name = name
+        self.claimId = claimId
+        self.channelClaimId = channelClaimId
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name, claimId
+        case channelClaimId = "channel_claim_id"
+    }
+}
+
+struct LighthouseFailure: Decodable {
+    let success: Bool?
+    let error: String?
 }

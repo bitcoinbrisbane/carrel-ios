@@ -60,6 +60,11 @@ public struct ChannelRef: Codable, Hashable, Sendable {
         self.value = value
     }
 
+    /// From a channel's own claim (a channel page, a channel in search results).
+    public init(channelClaim claim: Claim) {
+        self.init(claimId: claim.claimId, name: claim.name, canonicalURL: claim.canonicalURL, value: claim.value)
+    }
+
     enum CodingKeys: String, CodingKey {
         case claimId = "claim_id"
         case name

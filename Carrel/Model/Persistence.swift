@@ -55,6 +55,29 @@ enum LibraryStore {
     }
 }
 
+/// Recent searches. On this device only: not in the encrypted iCloud backup, and
+/// (like the taste profile) excluded from device backups.
+enum RecentSearchStore {
+    static var url: URL {
+        TasteStore.url.deletingLastPathComponent().appendingPathComponent("recent-searches.json")
+    }
+
+    static func load() -> RecentSearches {
+        guard let data = try? Data(contentsOf: url),
+              let recent = try? JSONDecoder().decode(RecentSearches.self, from: data) else { return RecentSearches() }
+        return recent
+    }
+
+    static func save(_ recent: RecentSearches) {
+        var dir = url.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? dir.setResourceValues(values)
+        try? JSONEncoder().encode(recent).write(to: url, options: .atomic)
+    }
+}
+
 /// The encrypted taste + library backup in iCloud key-value storage. The blob is
 /// sealed with a key from the wallet phrase (EncryptedBackup), so Apple can't read it.
 /// Syncs only when the app has the iCloud key-value storage capability (see README);
