@@ -124,9 +124,7 @@ struct ChannelCard: View {
     let channel: UserLibrary.FollowedChannel
 
     var body: some View {
-        NavigationLink {
-            TVChannelView(channelID: channel.claimId, name: channel.name)
-        } label: {
+        NavigationLink(value: ChannelRoute(id: channel.claimId, name: channel.name)) {
             VStack(spacing: 14) {
                 ChannelAvatar(url: channel.thumbnailURL.flatMap(URL.init(string:)), name: channel.name, size: 160)
                 Text(channel.title).font(.callout).lineLimit(1).frame(width: 200)
@@ -134,6 +132,24 @@ struct ChannelCard: View {
             .padding(12)
         }
         .buttonStyle(.borderless)
+    }
+}
+
+// MARK: - Navigation
+
+/// A channel page as a navigation value. Every push in the TV app is value-based
+/// (`Claim` or `ChannelRoute`): mixing in destination-style links made a video
+/// opened from a channel page show the channel again (#19).
+struct ChannelRoute: Hashable {
+    let id: String
+    let name: String
+}
+
+extension View {
+    /// The destinations every tab's NavigationStack needs: videos and channels.
+    func carrelDestinations() -> some View {
+        navigationDestination(for: Claim.self) { TVVideoView(claim: $0) }
+            .navigationDestination(for: ChannelRoute.self) { TVChannelView(channelID: $0.id, name: $0.name) }
     }
 }
 

@@ -27,7 +27,7 @@ struct TVSearchView: View {
             .padding(.horizontal, 80)
         }
         .searchable(text: $query, prompt: "Videos, channels or an lbry:// link")
-        .navigationDestination(for: Claim.self) { TVVideoView(claim: $0) }
+        .carrelDestinations()
         .task(id: query) {
             try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled else { return }
@@ -97,7 +97,7 @@ struct TVLibraryView: View {
             .padding(.vertical, 40)
         }
         .ignoresSafeArea(edges: .horizontal)
-        .navigationDestination(for: Claim.self) { TVVideoView(claim: $0) }
+        .carrelDestinations()
     }
 }
 

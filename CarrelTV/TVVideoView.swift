@@ -35,9 +35,7 @@ struct TVVideoView: View {
 
                 HStack(spacing: 24) {
                     if let channel = claim.signingChannel {
-                        NavigationLink {
-                            TVChannelView(channelID: channel.claimId, name: channel.name)
-                        } label: {
+                        NavigationLink(value: ChannelRoute(id: channel.claimId, name: channel.name)) {
                             HStack(spacing: 14) {
                                 ChannelAvatar(url: channel.thumbnailURL, name: channel.name, size: 52)
                                 Text(channel.title)

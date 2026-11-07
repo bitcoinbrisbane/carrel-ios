@@ -50,7 +50,7 @@ struct TVDiscoverView: View {
             .padding(.bottom, 80)
         }
         .ignoresSafeArea(edges: .horizontal)
-        .navigationDestination(for: Claim.self) { TVVideoView(claim: $0) }
+        .carrelDestinations()
         .task {
             if sections.isEmpty { sections = feed.discoverSections(taste: model.taste) }
         }

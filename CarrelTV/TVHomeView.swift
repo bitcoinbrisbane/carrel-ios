@@ -47,7 +47,7 @@ struct TVHomeView: View {
             .padding(.bottom, 80)
         }
         .ignoresSafeArea(edges: .horizontal)
-        .navigationDestination(for: Claim.self) { TVVideoView(claim: $0) }
+        .carrelDestinations()
         .task { if page == nil { await load() } }
     }
 
