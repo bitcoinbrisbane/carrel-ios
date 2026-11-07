@@ -26,6 +26,15 @@ xcodegen            # generates Carrel.xcodeproj from project.yml
 open Carrel.xcodeproj
 ```
 
+To build and (re)launch in a simulator from the terminal:
+
+```sh
+scripts/run-phone.sh                 # iPhone simulator (booted one, else the first available)
+scripts/run-tv.sh                    # Apple TV simulator
+scripts/run-tv.sh "Apple TV 4K (3rd generation)" --fresh   # a named device; --fresh deletes the app (and its data) first
+PULL=1 scripts/run-phone.sh          # git pull first
+```
+
 `LBRYKit` is a local Swift package and can be tested on its own:
 
 ```sh
