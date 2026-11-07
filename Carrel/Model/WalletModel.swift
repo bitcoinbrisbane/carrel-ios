@@ -115,7 +115,7 @@ final class WalletModel {
 
     /// ETH, USDC, USDT and wLBC balances, plus any lbc.exchange deposits in flight.
     func refreshEthereum() async {
-        guard let address = ethereum?.address else { return }
+        guard Features.ethereum, let address = ethereum?.address else { return }
         resumeEthereumActivity()
         ethBalances = await EthereumBalances.fetch(for: address, rpc: ethRPC)
         if let deposits = try? await bridge.deposits(for: address) { bridgeDeposits = deposits }

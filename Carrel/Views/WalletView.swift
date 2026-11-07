@@ -78,7 +78,7 @@ private struct WalletHomeView: View {
                 .controlSize(.large)
             }
 
-            EthereumSection()
+            if Features.ethereum { EthereumSection() }
 
             if let error = wallet.lastError {
                 Section {

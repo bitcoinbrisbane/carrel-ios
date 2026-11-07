@@ -56,7 +56,10 @@ targets:
         # archiving (scripts/archive.sh refuses an empty support address).
         CarrelSupportEmail: ""
         CarrelPrivacyPolicyURL: ""
-        UIBackgroundModes: [audio]
+        # Ethereum account, token sends and the lbc.exchange bridge: hidden in Release
+        # builds for the first review (always on in Debug). Set true to ship them.
+        CarrelEthereumEnabled: false
+        # UIBackgroundModes: [audio]   # back with background audio (#22); unused modes get flagged in review
         CFBundleURLTypes:
           - CFBundleURLName: au.com.bitcoinbrisbane.carrel.lbry
             CFBundleURLSchemes: [lbry]

@@ -173,6 +173,8 @@ The TV keeps its taste and library in Caches (tvOS's only file storage, which th
 
 The same recovery phrase also gives an Ethereum account, on the standard path `m/44'/60'/0'/0/0`, so importing the phrase into MetaMask shows the same address. (LBC keeps the LBRY SDK's seed scheme; Ethereum uses the plain BIP39 seed, so each side matches its own ecosystem's wallets.)
 
+The Ethereum features are behind a build switch: always on in Debug builds, and off in Release (TestFlight / App Store) builds until `CarrelEthereumEnabled: true` in `project.yml`, so the first review is just the LBC wallet.
+
 The Wallet tab shows ETH, USDC, USDT and wLBC balances from the public RPC lbc.exchange uses, and a Receive screen for the Ethereum address.
 
 **Wrap LBC → wLBC.** Carrel asks [lbc.exchange](https://lbc.exchange) for this wallet's deposit address, then trusts it only if the bridge's signed statement names exactly that LBC address, this Ethereum address, the bridge and chain 1, *and* the signature recovers to `Bridge.signer()` read from Ethereum, not from the API (the same check the website does). LBC goes from the Carrel wallet to that address, and the deposit shows as pending → ready → minted.

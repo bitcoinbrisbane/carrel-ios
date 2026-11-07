@@ -183,6 +183,20 @@ enum ModerationStore {
     }
 }
 
+/// Features that can be switched off for a build (set in project.yml).
+enum Features {
+    /// The Ethereum account, token sends and the lbc.exchange bridge. Off for the first
+    /// App Store / external TestFlight review (exchange-style features draw questions);
+    /// always on in Debug builds. Turn on with CarrelEthereumEnabled: true.
+    static var ethereum: Bool {
+        #if DEBUG
+        return true
+        #else
+        return Bundle.main.object(forInfoDictionaryKey: "CarrelEthereumEnabled") as? Bool ?? false
+        #endif
+    }
+}
+
 /// Support contact and policies, from Info.plist (set in project.yml).
 enum Support {
     static var email: String { info("CarrelSupportEmail") ?? "" }
