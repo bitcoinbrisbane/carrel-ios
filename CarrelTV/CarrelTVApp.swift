@@ -62,10 +62,11 @@ struct TVRootView: View {
                 .tabItem { Text("Home") }
             TVShortsView()
                 .tabItem { Text("Shorts") }
-            NavigationStack { TVSearchView() }
-                .tabItem { Image(systemName: "magnifyingglass") }
             NavigationStack { TVLibraryView() }
                 .tabItem { Text("Library") }
+            NavigationStack { TVSearchView() }
+                .tabItem { Image(systemName: "magnifyingglass") }
+                .accessibilityLabel("Search")
         }
     }
 }
