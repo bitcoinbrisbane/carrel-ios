@@ -199,7 +199,15 @@ Keccak-256, EIP-55 checksums, address derivation and EIP-191 recovery are tested
 7. Publishing from the phone
 8. **lbc.exchange bridge and Ethereum** *(built)* — ETH address from the same phrase (MetaMask-compatible), ETH/USDC/USDT/wLBC balances, wrap LBC → wLBC with a verified deposit address, mint (`Bridge.wrap`) and unwrap (`Bridge.unwrap`) in the app, and ETH/token sends
 
+## Reports, blocking and moderation (Guideline 1.2)
+
+- **Terms on first launch** (iPhone and Apple TV): zero tolerance for objectionable content, reports reviewed within 24 hours.
+- **Report** a video (⋯ on its page, or Not for me in Shorts) or a channel (⋯ on its page): pick a reason, add a note, and it's emailed to the support address with the claim ID. The video is hidden for you straight away, with an option to block its channel. On Apple TV the report is emailed by scanning a QR code with your phone.
+- **Block** a channel from the same menus: its videos disappear everywhere and it's unfollowed. Library › Blocked channels unblocks.
+- **Acting on reports:** add the claim or channel ID to [`moderation/blocklist.json`](moderation/) and push to `main`; every copy of the app fetches it on launch and hides it for everyone.
+- Set `CarrelSupportEmail` and `CarrelPrivacyPolicyURL` in `project.yml` (`scripts/archive.sh` won't archive without a support address). Library › About links to support, the terms and the privacy policy.
+
 ## App Store notes
 
-- **Guideline 1.2 (UGC):** report, block and filter are required. `ContentFilter` is the on-device layer; a server-side list follows.
+- **Guideline 1.2 (UGC):** terms, report, block and the moderation list are built (see above).
 - **Crypto:** wallet apps must ship from an organisation developer account. Tipping in LBC is the part most likely to draw in-app-purchase questions.

@@ -2,7 +2,8 @@ import Foundation
 
 /// Client-side content filter. App Store Guideline 1.2 requires user-generated
 /// content apps to filter objectionable material and let users report and block.
-/// This is the on-device layer; the server-side list (carrel-node) comes later.
+/// Built from the default tags, the viewer's own blocks (`UserBlocks`) and Carrel's
+/// published moderation list (`ModerationList`), which is how reports get acted on.
 public struct ContentFilter: Sendable {
 
     /// Tags excluded from discovery feeds by default.
@@ -24,11 +25,21 @@ public struct ContentFilter: Sendable {
 
     public func allows(_ claim: Claim) -> Bool {
         if blockedClaimIDs.contains(claim.claimId) { return false }
+        if blockedChannelIDs.contains(claim.claimId) { return false }      // a blocked channel's own page
         if let channel = claim.signingChannel, blockedChannelIDs.contains(channel.claimId) { return false }
         return !claim.tags.contains { blockedTags.contains($0.lowercased()) }
     }
 
     public func apply(_ claims: [Claim]) -> [Claim] {
         claims.filter(allows)
+    }
+
+    /// Defaults + the viewer's blocks + Carrel's moderation list.
+    public static func combined(user: UserBlocks, server: ModerationList?) -> ContentFilter {
+        ContentFilter(
+            blockedTags: Set(defaultBlockedTags).union((server?.tags ?? []).map { $0.lowercased() }),
+            blockedChannelIDs: Set(user.channels.keys).union(server?.channels ?? []),
+            blockedClaimIDs: user.claims.union(server?.claims ?? [])
+        )
     }
 }

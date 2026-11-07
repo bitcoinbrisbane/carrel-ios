@@ -84,6 +84,7 @@ struct ClaimDetailView: View {
                                 .foregroundStyle(.black)
                         }
                         DownloadButton(claim: claim)
+                        ModerationMenu(claim: claim)
                         ShareLink(item: claim.lbryURL) { Label("Share", systemImage: "square.and.arrow.up").labelStyle(.iconOnly) }
                             .buttonStyle(.bordered)
                         Spacer()

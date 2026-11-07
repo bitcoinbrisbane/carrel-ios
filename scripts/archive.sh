@@ -38,6 +38,10 @@ command -v xcodegen >/dev/null || { echo "xcodegen not found: brew install xcode
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "⚠︎ Uncommitted changes: this build's number ($(git rev-list --count HEAD)) is shared with the last commit." >&2
 fi
+if ! grep -qE '^ *CarrelSupportEmail: *"?[^" ]+@' project.yml; then
+  echo "✗ Set CarrelSupportEmail in project.yml first: App Review needs a working address for content reports (Guideline 1.2)." >&2
+  exit 1
+fi
 build=$(git rev-list --count HEAD)
 version=$(sed -nE 's/^ *MARKETING_VERSION: *"?([0-9.]+)"?/\1/p' project.yml | head -1)
 echo "▸ Carrel $version ($build)"

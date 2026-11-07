@@ -29,7 +29,15 @@ final class AppModel {
         load: { UserDefaults.standard.string(forKey: "odysee.authToken") },
         save: { UserDefaults.standard.set($0, forKey: "odysee.authToken") }
     ))
-    var filter = ContentFilter()
+    /// Defaults + the viewer's blocks + Carrel's moderation list (Guideline 1.2).
+    private(set) var filter = ContentFilter()
+    var blocks: UserBlocks = BlockStore.load() {
+        didSet { BlockStore.save(blocks); rebuildFilter() }
+    }
+    private(set) var moderation: ModerationList? = ModerationStore.load()
+    var termsAccepted = Support.termsAccepted {
+        didSet { Support.termsAccepted = termsAccepted }
+    }
     var deepLinkClaim: Claim?
     var deepLinkError: String?
     /// A tip started on Apple TV (`carrel://tip?uri=…` from its QR code).
@@ -54,6 +62,8 @@ final class AppModel {
     }
 
     init() {
+        rebuildFilter()
+        Task { await refreshModeration() }
         // A wallet opened on a fresh phone brings its taste and library back from iCloud.
         wallet.onReady = { [weak self] in self?.restoreBackupIfFresh() }
         // Apple TV (or another iPhone) changed the backup: fold its changes in.
@@ -131,6 +141,29 @@ final class AppModel {
         defer { applyingRemote = false }
         if mergedTaste != taste { taste = mergedTaste }
         if mergedLibrary != library { library = mergedLibrary }
+    }
+
+    // MARK: Moderation
+
+    private func rebuildFilter() {
+        filter = ContentFilter.combined(user: blocks, server: moderation)
+    }
+
+    /// Fetch Carrel's moderation list (how reports are acted on) and apply it.
+    func refreshModeration() async {
+        guard let list = try? await ModerationList.fetch() else { return }
+        ModerationStore.save(list)
+        moderation = list
+        rebuildFilter()
+    }
+
+    func block(_ channel: ChannelRef) {
+        blocks.block(channelID: channel.claimId, name: channel.name)
+        if library.isFollowing(channel.claimId) { library.unfollow(channel.claimId) }
+    }
+
+    func unblock(channelID: String) {
+        blocks.unblock(channelID: channelID)
     }
 
     // MARK: Apple TV
@@ -239,6 +272,10 @@ struct RootView: View {
         .sheet(item: $model.tipRequest) { claim in
             NavigationStack { TipSheet(claim: claim) }
                 .presentationDetents([.medium, .large])
+        }
+        .fullScreenCover(isPresented: Binding(get: { !model.termsAccepted }, set: { _ in })) {
+            TermsView { model.termsAccepted = true }
+                .interactiveDismissDisabled()
         }
         .alert("Couldn't open link", isPresented: .constant(model.deepLinkError != nil)) {
             Button("OK") { model.deepLinkError = nil }

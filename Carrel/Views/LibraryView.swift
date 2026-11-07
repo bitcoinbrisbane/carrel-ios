@@ -86,8 +86,23 @@ struct LibraryView: View {
                 }
             }
 
+            Section {
+                NavigationLink {
+                    BlockedChannelsView()
+                } label: {
+                    HStack {
+                        Label("Blocked channels", systemImage: "hand.raised")
+                        Spacer()
+                        let count = model.blocks.channels.count
+                        if count > 0 { Text("\(count)").foregroundStyle(.secondary) }
+                    }
+                }
+            }
+
+            SupportSection()
         }
         .navigationTitle("Library")
+
         .navigationDestination(for: Claim.self) { ClaimDetailView(claim: $0) }
         .confirmationDialog("Clear watch history?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Clear history", role: .destructive) { model.library.clearHistory() }

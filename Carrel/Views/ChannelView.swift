@@ -4,6 +4,9 @@ import LBRYKit
 /// A channel: cover, bio, Follow, and its latest videos.
 struct ChannelView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var reporting = false
+    @State private var confirmBlock = false
     let channelID: String
     let name: String
     /// Pass the channel claim when you already have it (saves a resolve).
@@ -37,6 +40,29 @@ struct ChannelView: View {
         .listStyle(.plain)
         .navigationTitle(channel?.title ?? name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { reporting = true } label: { Label("Report channel…", systemImage: "flag") }
+                    if model.blocks.isBlocked(channelID: channelID) {
+                        Button { model.unblock(channelID: channelID) } label: { Label("Unblock \(name)", systemImage: "hand.raised.slash") }
+                    } else {
+                        Button(role: .destructive) { confirmBlock = true } label: { Label("Block \(name)", systemImage: "hand.raised") }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("More: report or block")
+            }
+        }
+        .sheet(isPresented: $reporting) {
+            ReportSheet(report: ContentReport(channel: ref), channel: ref) { dismiss() }
+        }
+        .confirmationDialog("Block \(name)?", isPresented: $confirmBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { model.block(ref); dismiss() }
+        } message: {
+            Text("You won't see its videos anywhere in Carrel. Unblock in Library › Blocked channels.")
+        }
         .environment(\.openURL, OpenURLAction { url in
             if Linkifier.kind(ofWebURL: url) == .lbry || url.scheme?.lowercased() == "lbry" {
                 model.open(url.absoluteString)

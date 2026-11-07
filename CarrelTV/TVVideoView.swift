@@ -9,6 +9,9 @@ struct TVVideoView: View {
     let claim: Claim
     @State private var playing: Double?          // start position when presented
     @State private var showTip = false
+    @State private var showReport = false
+    @State private var confirmBlock = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         if claim.valueType == "channel" {
@@ -81,6 +84,17 @@ struct TVVideoView: View {
                     if claim.address != nil {
                         Button { showTip = true } label: { Label("Tip", systemImage: "l.circle") }
                     }
+                    Menu {
+                        Button { showReport = true } label: { Label("Report video", systemImage: "flag") }
+                        if let channel = claim.signingChannel {
+                            Button(role: .destructive) { confirmBlock = true } label: {
+                                Label("Block \(channel.name)", systemImage: "hand.raised")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("More: report or block")
                 }
             }
             .padding(80)
@@ -92,6 +106,15 @@ struct TVVideoView: View {
             TVPlayerScreen(claim: claim, start: request.start)
         }
         .sheet(isPresented: $showTip) { TipWithPhoneView(claim: claim) }
+        .sheet(isPresented: $showReport) { TVReportView(report: ContentReport(claim: claim)) { dismiss() } }
+        .confirmationDialog("Block \(claim.signingChannel?.name ?? "this channel")?", isPresented: $confirmBlock) {
+            Button("Block", role: .destructive) {
+                if let channel = claim.signingChannel { model.block(channel) }
+                dismiss()
+            }
+        } message: {
+            Text("You won't see its videos anywhere in Carrel on this Apple TV.")
+        }
     }
 }
 

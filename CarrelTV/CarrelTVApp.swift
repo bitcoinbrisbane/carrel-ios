@@ -24,7 +24,31 @@ struct CarrelTVApp: App {
 final class TVModel {
     let client = LBRYClient()
     let streams = StreamURLCache()
-    var filter = ContentFilter()
+    /// Defaults + the viewer's blocks + Carrel's moderation list (Guideline 1.2).
+    private(set) var filter = ContentFilter()
+    var blocks: UserBlocks = BlockStore.load() {
+        didSet { BlockStore.save(blocks); rebuildFilter() }
+    }
+    private(set) var moderation: ModerationList? = ModerationStore.load()
+    var termsAccepted = Support.termsAccepted {
+        didSet { Support.termsAccepted = termsAccepted }
+    }
+
+    private func rebuildFilter() {
+        filter = ContentFilter.combined(user: blocks, server: moderation)
+    }
+
+    func refreshModeration() async {
+        guard let list = try? await ModerationList.fetch() else { return }
+        ModerationStore.save(list)
+        moderation = list
+        rebuildFilter()
+    }
+
+    func block(_ channel: ChannelRef) {
+        blocks.block(channelID: channel.claimId, name: channel.name)
+        if library.isFollowing(channel.claimId) { library.unfollow(channel.claimId) }
+    }
 
     var taste: TasteProfile = TasteStore.load() {
         didSet { TasteStore.save(taste); if !applyingRemote { schedulePush() } }
@@ -44,6 +68,8 @@ final class TVModel {
     private var pushTask: Task<Void, Never>?
 
     init() {
+        rebuildFilter()
+        Task { await refreshModeration() }
         NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
             object: NSUbiquitousKeyValueStore.default, queue: .main
@@ -133,6 +159,8 @@ final class TVModel {
 }
 
 struct TVRootView: View {
+    @Environment(TVModel.self) private var model
+
     var body: some View {
         TabView {
             NavigationStack { TVHomeView() }
@@ -144,6 +172,9 @@ struct TVRootView: View {
             NavigationStack { TVSearchView() }
                 .tabItem { Image(systemName: "magnifyingglass") }
                 .accessibilityLabel("Search")
+        }
+        .fullScreenCover(isPresented: Binding(get: { !model.termsAccepted }, set: { _ in })) {
+            TVTermsView { model.termsAccepted = true }
         }
     }
 }

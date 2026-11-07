@@ -157,3 +157,56 @@ enum EthereumActivityStore {
         try? JSONEncoder().encode(Array(items.prefix(50))).write(to: url, options: .atomic)
     }
 }
+
+// MARK: - Moderation (Guideline 1.2), shared with Apple TV
+
+/// The viewer's blocked channels and hidden videos.
+enum BlockStore {
+    private static let key = "carrel.blocks.v1"
+    static func load() -> UserBlocks {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return UserBlocks() }
+        return (try? JSONDecoder().decode(UserBlocks.self, from: data)) ?? UserBlocks()
+    }
+    static func save(_ blocks: UserBlocks) {
+        UserDefaults.standard.set(try? JSONEncoder().encode(blocks), forKey: key)
+    }
+}
+
+/// Last copy of Carrel's published moderation list, so it applies offline too.
+enum ModerationStore {
+    private static let key = "carrel.moderation.v1"
+    static func load() -> ModerationList? {
+        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(ModerationList.self, from: $0) }
+    }
+    static func save(_ list: ModerationList) {
+        UserDefaults.standard.set(try? JSONEncoder().encode(list), forKey: key)
+    }
+}
+
+/// Support contact and policies, from Info.plist (set in project.yml).
+enum Support {
+    static var email: String { info("CarrelSupportEmail") ?? "" }
+    static var privacyURL: URL? { info("CarrelPrivacyPolicyURL").flatMap(URL.init(string:)) }
+    static var hasEmail: Bool { email.contains("@") }
+
+    /// Terms accepted on first launch; bump the version to ask again after changing them.
+    static let termsVersion = 1
+    static var termsAccepted: Bool {
+        get { UserDefaults.standard.integer(forKey: "carrel.terms.accepted") >= termsVersion }
+        set { UserDefaults.standard.set(newValue ? termsVersion : 0, forKey: "carrel.terms.accepted") }
+    }
+
+    static let terms = """
+    Carrel is a player for the LBRY network. The videos and channels you see are published by other people on an open network; Carrel doesn't host or create them.
+
+    By using Carrel you agree to Apple's standard licence terms for apps, and to this: there is no tolerance for objectionable content or abusive users. Don't use Carrel to find, share or promote illegal content, sexual content involving minors, threats, harassment or hate.
+
+    Carrel filters mature content by default. You can report any video or channel, and block any channel so you never see it again. Reports are reviewed within 24 hours; content that breaks these terms is removed from Carrel and its channel blocked for everyone.
+
+    Your wallet and keys stay on your devices. Carrel can't recover them or reverse a transaction.
+    """
+
+    private static func info(_ key: String) -> String? {
+        (Bundle.main.object(forInfoDictionaryKey: key) as? String).flatMap { $0.isEmpty ? nil : $0 }
+    }
+}

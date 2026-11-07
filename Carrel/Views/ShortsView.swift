@@ -7,6 +7,8 @@ import LBRYKit
 /// next one; like and "Not for me" tune what comes next.
 struct ShortsView: View {
     @Environment(AppModel.self) private var model
+    /// The clip being reported (Guideline 1.2).
+    @State private var reporting: Claim?
 
     @State private var items: [RankedClaim] = []
     @State private var currentID: String?
@@ -159,6 +161,14 @@ struct ShortsView: View {
             NavigationStack { TipSheet(claim: item.claim) }
                 .presentationDetents([.medium, .large])
         }
+        .sheet(item: $reporting) { claim in
+            ReportSheet(report: ContentReport(claim: claim), channel: claim.signingChannel) {
+                // Reported: move past it (it's hidden for this viewer from now on).
+                if let item = items.first(where: { $0.claim.claimId == claim.claimId }) {
+                    apply(.notInterested, to: item, toast: "Reported. Thanks.")
+                }
+            }
+        }
         .task(id: mode) {
             // Only reload when the mode changes, not every time the tab reappears.
             guard loadedMode != mode || items.isEmpty else { return }
@@ -197,6 +207,13 @@ struct ShortsView: View {
         if let channel {
             Button("Hide \(channel) completely", role: .destructive) {
                 apply(.muteChannel, to: item, toast: "\(channel) muted. Undo in Your taste.")
+            }
+        }
+        Button("Report…", role: .destructive) { reporting = item.claim }
+        if let ref = item.claim.signingChannel {
+            Button("Block \(ref.name)", role: .destructive) {
+                model.block(ref)
+                apply(.muteChannel, to: item, toast: "\(ref.name) blocked. Unblock in Library.")
             }
         }
     }
